@@ -1,0 +1,12 @@
+{application, werken,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { werken_app, []}},
+  {env, []}
+ ]}.

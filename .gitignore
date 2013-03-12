@@ -1,0 +1,10 @@
+deps
+.eunit
+*.beam
+*.o
+*.plt
+.DS_Store
+*.app
+rel/werken
+apps/werken/logs
+test.spec
