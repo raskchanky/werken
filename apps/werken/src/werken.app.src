@@ -5,7 +5,9 @@
   {registered, [werken_sup, werken_coordinator, werken_connection_sup]},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  crypto,
+                  erlsha2
                  ]},
   {mod, { werken_app, []}},
   {env, [{port, 4730}]}
