@@ -27,16 +27,21 @@ handle_cast(accept, State = #state{socket=LSock}) ->
   inet:setopts(Socket, [{active, once}]),
   {noreply, State#state{socket=Socket}};
 
+handle_cast({process_packet, Func}, #state{socket = Socket} = State) ->
+  Result = Func(),
+  werken_response:send_response(Result, Socket),
+  {noreply, State};
+
 handle_cast(stop, State) ->
   {stop, normal, State}.
 
 handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
-  shiva_request:parse(RawData),
+  werken_parser:parse(RawData),
   inet:setopts(Sock, [{active, once}]),
   {noreply, State};
 
 handle_info({tcp_closed, _Sock}, State) ->
-  gen_server:cast(shiva_server, {delete_dispatcher, self()}),
+  gen_server:cast(werken_coordinator, {delete_connection, self()}),
   {stop, normal, State};
 
 handle_info(_M, State) ->
