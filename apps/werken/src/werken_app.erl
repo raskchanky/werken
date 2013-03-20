@@ -1,6 +1,5 @@
 -module(werken_app).
-
--behaviour(application).
+-behavior(application).
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -10,7 +9,12 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    werken_sup:start_link().
+  case werken_sup:start_link() of
+    {ok, Pid} ->
+      {ok, Pid};
+    Other ->
+      {error, Other}
+  end.
 
 stop(_State) ->
     ok.
