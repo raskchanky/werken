@@ -2,7 +2,7 @@
 -export([workers/0, status/0, version/0]).
 
 workers() ->
-  {ok, WorkerList} = gen_server:call(werken_coordinator, dump_workers),
+  {ok, WorkerList} = gen_server:call(werken_coordinator, list_workers),
   Result = case WorkerList of
     [] ->
       ".\n";
