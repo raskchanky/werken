@@ -23,7 +23,6 @@ handle_call(_Msg, _From, State) ->
 handle_cast(accept, State = #state{socket=LSock}) ->
   {ok, Socket} = gen_tcp:accept(LSock),
   werken_connection_sup:start_socket(), %% maintain 20 listeners
-  % ok = gen_server:call(werken_coordinator, {map_pid_to_socket, self(), Socket}),
   inet:setopts(Socket, [{active, once}]),
   {noreply, State#state{socket=Socket}};
 

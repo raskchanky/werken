@@ -11,7 +11,6 @@ submit_job(FunctionName, UniqueId, Data) ->
   submit_job(FunctionName, UniqueId, Data, normal, false).
 
 submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
-  % {ok, _Socket} = gen_server:call(werken_coordinator, {get_socket_for_pid, self()}),
   JobId = werken_utils:generate_job_id(),
   Job = #job{job_id = JobId,
               function_name = FunctionName,
@@ -42,14 +41,14 @@ submit_job_high_bg(FunctionName, UniqueId, Data) ->
 submit_job_low_bg(FunctionName, UniqueId, Data) ->
   submit_job(FunctionName, UniqueId, Data, low, true).
 
-get_status(JobHandle) ->
+get_status(_JobHandle) ->
   ok.
 
-option_req(Option) ->
+option_req(_Option) ->
   ok.
 
-submit_job_sched(FunctionName, UniqueId, Data) ->
+submit_job_sched(_FunctionName, _UniqueId, _Data) ->
   ok.
 
-submit_job_epoch(FunctionName, UniqueId, Data) ->
+submit_job_epoch(_FunctionName, _UniqueId, _Data) ->
   ok.

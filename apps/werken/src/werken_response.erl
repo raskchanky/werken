@@ -8,14 +8,10 @@ send_response({text, Data}, Socket) ->
 
 send_response({binary, Data}, Socket) ->
   [Command | Args] = Data,
-  lager:debug("Command = ~p, Args = ~p", [Command, Args]),
   CommandNum = command_to_num(Command),
-  lager:debug("CommandNum = ~p", [CommandNum]),
   BinArgs = shiva_utils:list_to_null_list(Args),
   DataSize = size(BinArgs),
-  lager:debug("DataSize = ~p", [DataSize]),
   Response = <<"\000RES", CommandNum:32/big, DataSize:32/big, BinArgs/binary>>,
-  lager:debug("about to send ~p on socket ~p", [Response, Socket]),
   gen_tcp:send(Socket, Response);
 
 send_response(_Data, _Socket) ->
@@ -23,7 +19,6 @@ send_response(_Data, _Socket) ->
 
 %% internal functions
 command_to_num(Command) ->
-  lager:debug("Command = ~p", [Command]),
   case Command of
     "NOOP"            -> 6;
     "JOB_CREATED"     -> 8;

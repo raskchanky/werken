@@ -8,8 +8,7 @@ can_do_timeout/2, all_yours/0, work_exception/2, work_data/2,
 work_warning/2, grab_job_uniq/0]).
 
 can_do(FunctionName) ->
-  % {ok, Socket} = get_socket_for_pid(self()),
-  Record = #worker{functions = [FunctionName], status = awake},
+  Record = #worker{function_name = FunctionName, status = awake},
   add_worker(Record),
   ok.
 
@@ -27,7 +26,7 @@ pre_sleep() ->
   ok.
 
 grab_job() ->
-  case gen_server:call(werken_coordinator, {get_job, for_worker, self()}) of
+  case gen_server:call(werken_coordinator, {get_job, self()}) of
     {ok, []} ->
       {binary, ["NO_JOB"]};
     {ok, Job} ->
@@ -81,12 +80,12 @@ grab_job_uniq() ->
 notify_clients_if_necessary(Job, Packet) ->
   case Job#job.bg of
     false ->
-      gen_server:cast(werken_coordinator, {notify_client, Job#job.client_pid, {binary, Packet}});
+      gen_server:cast(werken_coordinator, {respond_to_client, Job#job.client_pid, Packet});
     _ -> ok
   end.
 
 get_job(JobHandle) ->
-  {ok, Job} = gen_server:call(werken_coordinator, {get_job, job_id, JobHandle}),
+  {ok, Job} = gen_server:call(werken_coordinator, {get_job, JobHandle}),
   Job.
 
 forward_packet_to_client(Name, Args) ->
@@ -96,6 +95,3 @@ forward_packet_to_client(Name, Args) ->
 
 add_worker(Worker) ->
   gen_server:cast(werken_coordinator, {add_worker, Worker}).
-
-get_socket_for_pid(Pid) ->
-  gen_server:call(werken_coordinator, {get_socket_for_pid, Pid}).
