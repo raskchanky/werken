@@ -39,7 +39,7 @@ work_status(JobHandle, Numerator, Denominator) ->
 
 work_complete(JobHandle, Data) ->
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
-  gen_server:cast(werken_coordinator, {delete_job, JobHandle}),
+  gen_server:call(werken_coordinator, {delete_job, JobHandle}),
   ok.
 
 work_fail(JobHandle) ->
@@ -94,4 +94,4 @@ forward_packet_to_client(Name, Args) ->
   notify_clients_if_necessary(Job, [Name|Args]).
 
 add_worker(Worker) ->
-  gen_server:cast(werken_coordinator, {add_worker, Worker}).
+  gen_server:call(werken_coordinator, {add_worker, Worker}).

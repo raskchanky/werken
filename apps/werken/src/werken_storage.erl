@@ -22,11 +22,33 @@ add_job(Job) ->
 
 % GRAB_JOB from a worker
 get_job(Pid) when is_pid(Pid) ->
-  ok;
+  case ets:match_object(workers, {'_', '_', '_', Pid}) of
+    [] -> [];
+    Workers -> get_job(Workers, [high, normal, low])
+  end;
 
 get_job(JobHandle) ->
   case ets:lookup(jobs, JobHandle) of
     [] -> no_job;
+    [Job] -> Job
+  end.
+
+get_job(_, []) ->
+  no_job;
+
+get_job(Workers, [Priority|OtherPriorities]) ->
+  case get_job(Workers, Priority) of
+    no_job -> get_job(Workers, OtherPriorities);
+    Job -> Job
+  end;
+
+get_job([], Priority) when is_atom(Priority) ->
+  no_job;
+
+get_job([Worker|OtherWorkers], Priority) when is_atom(Priority) ->
+  Pattern = {'_', '_', '_', '_', Worker#worker.function_name, '_', '_', Priority, '_'},
+  case ets:match_object(jobs, Pattern) of
+    [] -> get_job(OtherWorkers, Priority);
     [Job] -> Job
   end.
 

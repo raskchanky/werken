@@ -22,8 +22,8 @@ submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
               bg = Bg},
   Client = #client{function_name = FunctionName,
               data = Data},
-  gen_server:cast(werken_coordinator, {add_client, Client}),
-  gen_server:cast(werken_coordinator, {add_job, Job}),
+  gen_server:call(werken_coordinator, {add_client, Client}),
+  gen_server:call(werken_coordinator, {add_job, Job}),
   {binary, ["JOB_CREATED", JobId]}.
 
 submit_job_high(FunctionName, UniqueId, Data) ->

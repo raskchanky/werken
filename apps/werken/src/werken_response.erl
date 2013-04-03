@@ -1,4 +1,4 @@
--module(shiva_response).
+-module(werken_response).
 
 %% API
 -export([send_response/2]).
@@ -9,7 +9,7 @@ send_response({text, Data}, Socket) ->
 send_response({binary, Data}, Socket) ->
   [Command | Args] = Data,
   CommandNum = command_to_num(Command),
-  BinArgs = shiva_utils:list_to_null_list(Args),
+  BinArgs = werken_utils:list_to_null_list(Args),
   DataSize = size(BinArgs),
   Response = <<"\000RES", CommandNum:32/big, DataSize:32/big, BinArgs/binary>>,
   gen_tcp:send(Socket, Response);
