@@ -3,7 +3,7 @@
 %% API
 -export([parse/1]).
 
-parse(<<0, _MagicCode:3/bytes, Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
+parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
   Result = decode(Command, Data),
   notify_connection_of_packet(Result),
   case Rest of

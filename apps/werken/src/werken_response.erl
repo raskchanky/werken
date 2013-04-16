@@ -11,7 +11,7 @@ send_response({binary, Data}, Socket) ->
   CommandNum = command_to_num(Command),
   BinArgs = werken_utils:list_to_null_list(Args),
   DataSize = size(BinArgs),
-  Response = <<"\000RES", CommandNum:32/big, DataSize:32/big, BinArgs/binary>>,
+  Response = [0, "RES", <<CommandNum:32/big, DataSize:32/big, BinArgs/binary>>],
   gen_tcp:send(Socket, Response);
 
 send_response(_Data, _Socket) ->
