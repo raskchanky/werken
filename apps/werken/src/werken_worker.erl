@@ -8,7 +8,7 @@ can_do_timeout/2, all_yours/0, work_exception/2, work_data/2,
 work_warning/2, grab_job_uniq/0]).
 
 can_do(FunctionName) ->
-  Record = #worker{function_name = FunctionName, status = awake},
+  Record = #worker{pid = self(), function_name = FunctionName, status = awake},
   add_worker(Record),
   ok.
 
@@ -21,7 +21,7 @@ reset_abilities() ->
   ok.
 
 pre_sleep() ->
-  Record = #worker{status = asleep},
+  Record = #worker{pid = self(), status = asleep},
   add_worker(Record),
   ok.
 
@@ -51,7 +51,7 @@ set_client_id() ->
   set_client_id(Id).
 
 set_client_id(ClientId) ->
-  Record = #worker{worker_id = ClientId},
+  Record = #worker{pid = self(), worker_id = ClientId},
   add_worker(Record),
   ok.
 
