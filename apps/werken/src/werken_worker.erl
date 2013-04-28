@@ -8,8 +8,10 @@ can_do_timeout/2, all_yours/0, work_exception/2, work_data/2,
 work_warning/2, grab_job_uniq/0]).
 
 can_do(FunctionName) ->
-  Record = #worker{pid = self(), function_name = FunctionName, status = awake},
-  add_worker(Record),
+  WorkerFunction = #worker_function{pid = self(), function_name = FunctionName},
+  WorkerStatus = #worker_status{pid = self(), status = awake},
+  add_worker(WorkerFunction),
+  add_worker(WorkerStatus),
   ok.
 
 cant_do(FunctionName) ->
@@ -21,8 +23,8 @@ reset_abilities() ->
   ok.
 
 pre_sleep() ->
-  Record = #worker{pid = self(), status = asleep},
-  add_worker(Record),
+  WorkerStatus = #worker_status{pid = self(), status = asleep},
+  add_worker(WorkerStatus),
   ok.
 
 grab_job() ->
@@ -48,11 +50,13 @@ work_fail(JobHandle) ->
 
 set_client_id() ->
   Id = werken_utils:generate_worker_id(),
+  io:format("Id ~p~n", [Id]),
   set_client_id(Id).
 
 set_client_id(ClientId) ->
-  Record = #worker{pid = self(), worker_id = ClientId},
-  add_worker(Record),
+  Worker = #worker{pid = self(), worker_id = ClientId},
+  io:format("Worker ~p~n", [Worker]),
+  add_worker(Worker),
   ok.
 
 can_do_timeout(_FunctionName, _Timeout) ->
@@ -94,4 +98,8 @@ forward_packet_to_client(Name, Args) ->
   notify_clients_if_necessary(Job, [Name|Args]).
 
 add_worker(Worker) ->
-  gen_server:call(werken_coordinator, {add_worker, Worker}).
+  io:format("Worker = ~p~n", [Worker]),
+  X = gen_server:call(werken_coordinator, {add_worker, Worker}),
+  io:format("X = ~p~n", [X]),
+  ok.
+

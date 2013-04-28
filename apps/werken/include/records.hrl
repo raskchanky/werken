@@ -1,6 +1,8 @@
 %%% record definitions
 
--record(worker, {pid, function_name, status, worker_id}).
+-record(worker_function, {pid, function_name}).
+-record(worker_status, {pid, status}).
+-record(worker, {pid, worker_id}).
 -record(client, {pid, function_name, data, client_id, result}).
 -record(job, {job_id, data, submitted_at, run_at, function_name, unique_id, client_pid, priority, bg}).
 

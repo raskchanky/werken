@@ -27,7 +27,9 @@ handle_cast(accept, State = #state{socket=LSock}) ->
   {noreply, State#state{socket=Socket}};
 
 handle_cast({process_packet, Func}, #state{socket = Socket} = State) ->
+  io:format("Func ~p~n", [Func]),
   Result = Func(),
+  io:format("Result ~p~n", [Result]),
   werken_response:send_response(Result, Socket),
   {noreply, State};
 
@@ -35,6 +37,7 @@ handle_cast(stop, State) ->
   {stop, normal, State}.
 
 handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
+  io:format("just received raw data ~p~n", [RawData]),
   werken_parser:parse(RawData),
   inet:setopts(Sock, [{active, once}]),
   {noreply, State};

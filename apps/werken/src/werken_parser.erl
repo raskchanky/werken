@@ -4,7 +4,9 @@
 -export([parse/1]).
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
+  io:format("Command = ~p, Data = ~p~n", [Command, Data]),
   Result = decode(Command, Data),
+  io:format("Result = ~p~n", [Result]),
   notify_connection_of_packet(Result),
   case Rest of
     <<>> ->
@@ -28,6 +30,9 @@ notify_connection_of_packet(Packet) ->
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),
   Command = num_to_command(Num),
+  io:format("Module = ~p, Command = ~p~n", [Module, Command]),
+  Z = werken_utils:args_to_list(Data),
+  io:format("Data = ~p~n", [Z]),
   Func = fun() ->
     apply(Module, Command, werken_utils:args_to_list(Data))
   end,

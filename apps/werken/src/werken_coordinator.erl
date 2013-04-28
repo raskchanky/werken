@@ -26,10 +26,12 @@ handle_info(timeout, State) ->
 
 handle_call({add_job, Job}, _From, State) ->
   werken_storage:add_job(Job),
-  {noreply, State};
+  {reply, ok, State};
 
 handle_call({get_job, Pid}, _From, State) when is_pid(Pid) ->
+  io:format("werken_coordinator. handle_call/get_job/pid = ~p~n", [Pid]),
   Job = werken_storage:get_job(Pid),
+  io:format("job = ~p~n", [Job]),
   {reply, {ok, Job}, State};
 
 handle_call({get_job, JobHandle}, _From, State) ->
@@ -38,15 +40,23 @@ handle_call({get_job, JobHandle}, _From, State) ->
 
 handle_call({delete_job, JobHandle}, _From, State) ->
   werken_storage:delete_job(JobHandle),
-  {noreply, State};
+  {reply, ok, State};
 
 handle_call({add_client, Client}, _From, State) ->
   werken_storage:add_client(Client),
-  {noreply, State};
+  {reply, ok, State};
 
 handle_call({add_worker, Worker}, _From, State) ->
+  io:format("about to add worker ~p~n", [Worker]),
   werken_storage:add_worker(Worker),
-  {noreply, State};
+  AllWorkers = ets:tab2list(workers),
+  io:format("workers table = ~p~n", [AllWorkers]),
+  io:format("about to return from adding a worker~n"),
+  {reply, ok, State};
+
+handle_call(dump_workers, _From, State) ->
+  Workers = ets:tab2list(workers),
+  {reply, {ok, Workers}, State};
 
 handle_call(list_workers, _From, State) ->
   Workers = werken_storage:list_workers(),
@@ -56,16 +66,16 @@ handle_call(Msg, _From, State) ->
   {reply, {ok, Msg}, State}.
 
 handle_cast({delete_connection, Pid}, State) ->
-  {noreply, State};
+  {reply, ok, State};
 
 handle_cast({remove_function_from_worker, all, Pid}, State) ->
-  {noreply, State};
+  {reply, ok, State};
 
 handle_cast({remove_function_from_worker, FunctionName, Pid}, State) ->
-  {noreply, State};
+  {reply, ok, State};
 
 handle_cast({respond_to_client, Pid, Packet}, State) ->
-  {noreply, State};
+  {reply, ok, State};
 
 handle_cast(stop, State) ->
   {stop, normal, State}.
