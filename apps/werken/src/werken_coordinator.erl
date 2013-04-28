@@ -66,16 +66,18 @@ handle_call(Msg, _From, State) ->
   {reply, {ok, Msg}, State}.
 
 handle_cast({delete_connection, Pid}, State) ->
-  {reply, ok, State};
+  werken_storage:delete_client(Pid),
+  werken_storage:delete_worker(Pid),
+  {noreply, State};
 
 handle_cast({remove_function_from_worker, all, Pid}, State) ->
-  {reply, ok, State};
+  {noreply, State};
 
 handle_cast({remove_function_from_worker, FunctionName, Pid}, State) ->
-  {reply, ok, State};
+  {noreply, State};
 
 handle_cast({respond_to_client, Pid, Packet}, State) ->
-  {reply, ok, State};
+  {noreply, State};
 
 handle_cast(stop, State) ->
   {stop, normal, State}.

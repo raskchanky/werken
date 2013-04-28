@@ -121,6 +121,9 @@ add_client(Client) ->
     _ -> ok
   end.
 
+delete_client(Pid) when is_pid(Pid) ->
+  ets:delete(clients, Pid);
+
 delete_client(ClientId) ->
   ets:match_delete(clients, {'_', '_', ClientId, '_'}).
 
@@ -157,9 +160,9 @@ list_workers() ->
   ets:tab2list(workers).
 
 delete_worker(Pid) when is_pid(Pid) ->
-  ets:match_delete(workers, {Pid, '_'}),
-  ets:match_delete(worker_statuses, {Pid, '_'}),
-  ets:match_delete(worker_functions, {Pid, '_'}),
+  ets:delete(workers, Pid),
+  ets:delete(worker_statuses, Pid),
+  ets:delete(worker_functions, Pid),
   ok.
 
 % private functions
