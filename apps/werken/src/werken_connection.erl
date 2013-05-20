@@ -27,9 +27,9 @@ handle_cast(accept, State = #state{socket=LSock}) ->
   {noreply, State#state{socket=Socket}};
 
 handle_cast({process_packet, Func}, #state{socket = Socket} = State) ->
-  io:format("Func ~p~n", [Func]),
+  io:format("werken_connection, process_packet, Func ~p~n", [Func]),
   Result = Func(),
-  io:format("Result ~p~n", [Result]),
+  io:format("werken_connection, process_packet, Result ~p~n", [Result]),
   werken_response:send_response(Result, Socket),
   {noreply, State};
 

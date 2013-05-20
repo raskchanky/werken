@@ -4,9 +4,9 @@
 -export([parse/1]).
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
-  io:format("Command = ~p, Data = ~p~n", [Command, Data]),
+  io:format("werken_parser, parse, Command = ~p, Data = ~p~n", [Command, Data]),
   Result = decode(Command, Data),
-  io:format("Result = ~p~n", [Result]),
+  io:format("werken_parser, parse, Result = ~p~n", [Result]),
   notify_connection_of_packet(Result),
   case Rest of
     <<>> ->

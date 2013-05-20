@@ -31,7 +31,7 @@ handle_call({add_job, Job}, _From, State) ->
 handle_call({get_job, Pid}, _From, State) when is_pid(Pid) ->
   io:format("werken_coordinator. handle_call/get_job/pid = ~p~n", [Pid]),
   Job = werken_storage:get_job(Pid),
-  io:format("job = ~p~n", [Job]),
+  io:format("werken coordinator. job = ~p~n", [Job]),
   {reply, {ok, Job}, State};
 
 handle_call({get_job, JobHandle}, _From, State) ->
@@ -77,6 +77,7 @@ handle_cast({remove_function_from_worker, FunctionName, Pid}, State) ->
   {noreply, State};
 
 handle_cast({respond_to_client, Pid, Packet}, State) ->
+  io:format("werken_coordinator. respond_to_client. Pid = ~p, Packet = ~p~n", [Pid, Packet]),
   {noreply, State};
 
 handle_cast(stop, State) ->

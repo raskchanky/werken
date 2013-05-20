@@ -14,7 +14,7 @@ generate_client_id() ->
   "C:" ++ integer_to_list(random_int()).
 
 generate_job_id() ->
-  "J:" ++ hmac:hexlify(erlsha2:sha224(integer_to_list(random_int()))).
+  "J:" ++ string:to_lower(hmac:hexlify(erlsha2:sha224(integer_to_list(random_int())))).
 
 args_to_list(Args) ->
   Parts = binary:split(Args, [<<0>>], [global]),

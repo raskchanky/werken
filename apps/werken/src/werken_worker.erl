@@ -40,6 +40,7 @@ work_status(JobHandle, Numerator, Denominator) ->
   ok.
 
 work_complete(JobHandle, Data) ->
+  io:format("inside werken_worker, work_complete function. JobHandle = ~p, Data = ~p~n", [JobHandle, Data]),
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
   gen_server:call(werken_coordinator, {delete_job, JobHandle}),
   ok.
@@ -82,19 +83,21 @@ grab_job_uniq() ->
 
 % private functions
 notify_clients_if_necessary(Job, Packet) ->
+  io:format("notify_clients_if_necessary. Job = ~p, Packet = ~p~n", [Job, Packet]),
   case Job#job.bg of
     false ->
-      gen_server:cast(werken_coordinator, {respond_to_client, Job#job.client_pid, Packet});
+      Pid = Job#job.client_pid,
+      Func = fun() -> {binary, Packet} end,
+      gen_server:cast(Pid, {process_packet, Func});
+      % gen_server:cast(werken_coordinator, {respond_to_client, Job#job.client_pid, Packet});
     _ -> ok
   end.
 
-get_job(JobHandle) ->
-  {ok, Job} = gen_server:call(werken_coordinator, {get_job, JobHandle}),
-  Job.
-
 forward_packet_to_client(Name, Args) ->
+  io:format("forward_packet_to_client. Name = ~p, Args = ~p~n", [Name, Args]),
   JobHandle = hd(Args),
-  Job = get_job(JobHandle),
+  Job = werken_storage:get_job(JobHandle),
+  io:format("forward_packet_to_client. JobHandle = ~p, Job = ~p~n", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).
 
 add_worker(Worker) ->

@@ -48,7 +48,6 @@ get_job(Pid) when is_pid(Pid) ->
   X = case ets:lookup(worker_functions, Pid) of
     [] -> [];
     Workers ->
-      io:format("WEEEEEEEEEEE~n"),
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
       io:format("werken_storage. get_job/pid FunctionNames = ~p~n", [FunctionNames]),
       get_job(FunctionNames, [high, normal, low])
@@ -63,22 +62,34 @@ get_job(JobHandle) ->
   end.
 
 get_job(_, []) ->
+  io:format("aw shit. no priorities left. what happens now?~n"),
   [];
 
 get_job(FunctionNames, [Priority|OtherPriorities]) ->
+  io:format("get_job, FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p~n", [FunctionNames, Priority, OtherPriorities]),
   case get_job(FunctionNames, Priority) of
-    [] -> get_job(FunctionNames, OtherPriorities);
-    [Job] -> Job
+    [] ->
+      io:format("tried to get jobs with FunctionNames = ~p and Priority = ~p and it failed. Trying with OtherPriorities = ~p now~n", [FunctionNames, Priority, OtherPriorities]),
+      get_job(FunctionNames, OtherPriorities);
+    Job ->
+      io:format("succeeded in getting Job = ~p~n", [Job]),
+      Job
   end;
 
 get_job([], Priority) when is_atom(Priority) ->
+  io:format("bummer. out of jobs for Priority = ~p~n", [Priority]),
   [];
 
 get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
-  MatchSpec = ets:fun2ms(fun(J = #job{function_name=F, priority=P}) when F == FunctionName; P == Priority -> J end),
+  io:format("get_job, FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p~n", [FunctionName, OtherFunctionNames, Priority]),
+  MatchSpec = ets:fun2ms(fun(J = #job{function_name=F, priority=P}) when F == FunctionName andalso P == Priority -> J end),
   case ets:select(jobs, MatchSpec) of
-    [] -> get_job(OtherFunctionNames, Priority);
-    [Job] -> Job
+    [] ->
+      io:format("tried to find a job, failed. got []. trying with ~p now~n", [OtherFunctionNames]),
+      get_job(OtherFunctionNames, Priority);
+    [Job] ->
+      io:format("FOUND A JOB! Job = ~p~n", [Job]),
+      Job
   end.
 
 % get_job(Pid) when is_pid(Pid) ->
