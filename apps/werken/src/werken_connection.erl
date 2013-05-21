@@ -17,6 +17,10 @@ init(Socket) ->
   gen_server:cast(self(), accept),
   {ok, #state{socket = Socket}}.
 
+handle_call(wakeup_worker, _From, State = #state{socket = Socket}) ->
+  werken_response:send_response({binary, ["NOOP"]}, Socket),
+  {reply, ok, State};
+
 handle_call(_Msg, _From, State) ->
   {noreply, State}.
 

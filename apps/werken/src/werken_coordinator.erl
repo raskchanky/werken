@@ -26,6 +26,7 @@ handle_info(timeout, State) ->
 
 handle_call({add_job, Job}, _From, State) ->
   werken_storage:add_job(Job),
+  spawn(fun() -> wakeup_workers_for_job(Job) end),
   {reply, ok, State};
 
 handle_call({get_job, Pid}, _From, State) when is_pid(Pid) ->
@@ -88,3 +89,26 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
+
+% private
+wakeup_workers_for_job(Job) ->
+  io:format("wakeup_workers_for_job, Job = ~p~n", [Job]),
+  Pids = werken_storage:get_worker_pids_for_function_name(Job#job.function_name),
+  io:format("wakeup_workers_for_job, Pids = ~p~n", [Pids]),
+  wakeup_workers(Pids).
+
+wakeup_workers([]) ->
+  io:format("wakeup_workers, all out of workers. bye bye~n"),
+  ok;
+
+wakeup_workers([Pid|Rest]) ->
+  io:format("wakeup_workers, Pid = ~p, Rest = ~p~n", [Pid, Rest]),
+  Record = werken_storage:get_worker_status(Pid),
+  io:format("wakeup_workers, Record = ~p~n", [Record]),
+  case Record#worker_status.status of
+    asleep ->
+      gen_server:call(Pid, wakeup_worker);
+    _ ->
+      ok
+  end,
+  wakeup_workers(Rest).
