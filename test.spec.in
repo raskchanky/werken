@@ -1,0 +1,4 @@
+{alias, werken, "@PATH@/apps/werken"}.
+{logdir, "@PATH@/apps/werken/logs"}.
+{include, "@PATH@/apps/werken/src"}.
+{suites, werken, [basic_SUITE]}.
