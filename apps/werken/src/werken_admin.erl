@@ -2,16 +2,18 @@
 -export([workers/0, status/0, version/0]).
 
 workers() ->
-  {ok, WorkerList} = gen_server:call(werken_coordinator, list_workers),
-  Result = case WorkerList of
+  io:format("AWWW SHIT INSIDE WORKERS() YO~n"),
+  Workers = werken_storage:list_workers(),
+  % {ok, WorkerList} = gen_server:call(werken_coordinator, list_workers),
+  Result = case Workers of
     [] ->
       ".\n";
     _ ->
       Data = lists:map(fun(X) ->
-            {H, F} = X,
-            Y = [string:join(H, " "), string:join(F, " ")],
+            {Info, FunctionNames} = X,
+            Y = [string:join(Info, " "), string:join(FunctionNames, " ")],
             string:join(Y, " : ")
-        end, WorkerList),
+        end, Workers),
       NewData = string:join(Data, "\n"),
       io_lib:format("~s~n.~n", [NewData])
   end,

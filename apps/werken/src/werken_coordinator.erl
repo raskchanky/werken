@@ -55,14 +55,6 @@ handle_call({add_worker, Worker}, _From, State) ->
   io:format("about to return from adding a worker~n"),
   {reply, ok, State};
 
-handle_call(dump_workers, _From, State) ->
-  Workers = ets:tab2list(workers),
-  {reply, {ok, Workers}, State};
-
-handle_call(list_workers, _From, State) ->
-  Workers = werken_storage:list_workers(),
-  {reply, {ok, Workers}, State};
-
 handle_call(Msg, _From, State) ->
   {reply, {ok, Msg}, State}.
 

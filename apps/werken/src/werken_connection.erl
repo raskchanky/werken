@@ -21,6 +21,9 @@ handle_call(wakeup_worker, _From, State = #state{socket = Socket}) ->
   werken_response:send_response({binary, ["NOOP"]}, Socket),
   {reply, ok, State};
 
+handle_call(get_socket, _From, State = #state{socket = Socket}) ->
+  {reply, {ok, Socket}, State};
+
 handle_call(_Msg, _From, State) ->
   {noreply, State}.
 

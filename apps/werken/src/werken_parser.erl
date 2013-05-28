@@ -17,10 +17,11 @@ parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
 
 parse(<<AdminCommand/bytes>>) ->
   NewCommand = binary_to_atom(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global]), utf8),
+  io:format("PARSING AN ADMIN COMMAND YO. NewCommand = ~p~n", [NewCommand]),
   Func = fun() ->
     apply(werken_admin, NewCommand, [])
   end,
-  notify_connection_of_packet({admin, Func}),
+  notify_connection_of_packet(Func),
   ok.
 
 % internal functions
