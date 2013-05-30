@@ -4,7 +4,6 @@
 workers() ->
   io:format("AWWW SHIT INSIDE WORKERS() YO~n"),
   Workers = werken_storage:list_workers(),
-  % {ok, WorkerList} = gen_server:call(werken_coordinator, list_workers),
   Result = case Workers of
     [] ->
       ".\n";

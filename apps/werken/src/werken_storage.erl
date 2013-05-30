@@ -109,7 +109,8 @@ add_worker(#worker_function{pid=Pid, function_name=FunctionName} = NewWorker) wh
   ok.
 
 list_workers() ->
-  WorkerList = ets:tab2list(workers),
+  F = fun(#worker{worker_id=W1}, #worker{worker_id=W2}) -> W1 =< W2 end,
+  WorkerList = lists:sort(F, ets:tab2list(workers)),
   lists:map(fun(#worker{pid=Pid, worker_id=WorkerId}) ->
     FunctionNames = get_worker_function_names_for_pid(Pid),
     {ok, Socket} = gen_server:call(Pid, get_socket),
