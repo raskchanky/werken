@@ -5,15 +5,15 @@
 -export([init/0]).
 -export([add_job/1, get_job/1, delete_job/1]).
 -export([add_client/1, delete_client/1]).
--export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1]).
+-export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1]).
 
 init() ->
   Tables = [
-        {jobs, [set, named_table, {keypos, #job.job_id}]},
-        {clients, [set, named_table, {keypos, #client.pid}]},
-        {worker_functions, [bag, named_table, {keypos, #worker_function.pid}]},
-        {worker_statuses, [set, named_table, {keypos, #worker_status.pid}]},
-        {workers, [set, named_table, {keypos, #worker.pid}]}
+        {jobs, [set, named_table, public, {keypos, #job.job_id}]},
+        {clients, [set, named_table, public, {keypos, #client.pid}]},
+        {worker_functions, [bag, named_table, public, {keypos, #worker_function.pid}]},
+        {worker_statuses, [set, named_table, public, {keypos, #worker_status.pid}]},
+        {workers, [set, named_table, public, {keypos, #worker.pid}]}
       ],
   create_tables(Tables).
 
@@ -40,6 +40,10 @@ get_job(Pid) when is_pid(Pid) ->
   end,
   io:format("werken_storage. get_job/pid X = ~p~n", [X]),
   X;
+
+get_job(JobHandle) when is_binary(JobHandle) ->
+  NewJobHandle = binary_to_list(JobHandle),
+  get_job(NewJobHandle);
 
 get_job(JobHandle) ->
   case ets:lookup(jobs, JobHandle) of
@@ -131,8 +135,9 @@ get_worker_function_names_for_pid(Pid) when is_pid(Pid) ->
     Workers ->
       io:format("found some worker function name(s) = ~p~n", [Workers]),
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
-      io:format("just gonna return the function names ~p~n", [FunctionNames]),
-      FunctionNames
+      SortedFunctionNames = lists:sort(FunctionNames),
+      io:format("just gonna return the function names ~p~n", [SortedFunctionNames]),
+      SortedFunctionNames
   end.
 
 get_worker_pids_for_function_name(FunctionName) ->
@@ -148,8 +153,43 @@ get_worker_pids_for_function_name(FunctionName) ->
   end.
 
 get_worker_status(Pid) when is_pid(Pid) ->
-  [Status] = ets:lookup(worker_statuses, Pid),
-  Status.
+  io:format("gonna check the status of me, pid = ~p~n", [Pid]),
+  X = case ets:lookup(worker_statuses, Pid) of
+    [] -> [];
+    [Status] -> Status
+  end,
+  io:format("and the result was ~p~n", [X]),
+  X.
+
+get_worker_id_for_pid(Pid) when is_pid(Pid) ->
+  io:format("gonna check the worker_id of me, pid = ~p~n", [Pid]),
+  X = case ets:lookup(workers, Pid) of
+    [] -> [];
+    [WorkerId] -> WorkerId
+  end,
+  io:format("and the result was ~p~n", [X]),
+  X.
+
+remove_function_from_worker(all, Pid) when is_pid(Pid) ->
+  ets:delete(worker_functions, Pid),
+  ok;
+ 
+remove_function_from_worker(FunctionName, Pid) when is_pid(Pid) ->
+  io:format("going to try and delete a function from a worker. FunctionName = ~p, Pid = ~p~n", [FunctionName, Pid]),
+  FullTable = ets:tab2list(worker_functions),
+  io:format("right now, table looks like this: ~p~n", [FullTable]),
+  MS = ets:fun2ms(fun(#worker_function{pid=P, function_name=F}) when F == FunctionName andalso P == Pid -> true end),
+  % MS = [{#worker_function{pid = '$1',function_name = '$2'},
+  % [{'andalso',{'==','$2',FunctionName},
+  %             {'==','$1',Pid}}],
+  % [true]}],
+  Num = ets:select_delete(worker_functions, MS),
+  % MatchSpec = ets:fun2ms(fun(W = #worker_function{function_name=F, pid=P}) when F == FunctionName andalso P == Pid -> W end),
+  % Matches = ets:select(worker_functions, MatchSpec),
+  io:format("num deleted = ~p~n", [Num]),
+  FullTable1 = ets:tab2list(worker_functions),
+  io:format("just finished the delete. now the table looks like this: ~p~n", [FullTable1]),
+  ok.
 
 % private functions
 create_tables([]) ->

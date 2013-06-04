@@ -22,7 +22,6 @@ workers(_Config) ->
   gearman_test_worker:set_client_id(WorkerSocket2, "worker2"),
   gearman_test_worker:can_do(WorkerSocket2, "some_job"),
   gearman_test_worker:can_do(WorkerSocket2, "some_other_job"),
-  timer:sleep(1000), % this is a smell. figure out a way to refactor it out.
   {ok, AdminSocket} = gearman_test_common:connect(),
   gearman_test_admin:workers(AdminSocket),
   {ok, WorkerOutput} = gearman_test_common:get_response(AdminSocket),
