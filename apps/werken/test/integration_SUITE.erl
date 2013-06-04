@@ -32,6 +32,7 @@ end_to_end(_Config) ->
   {ok, R4} = gearman_test_common:get_response(ClientSocket),
   {ok, JobHandle3} = gearman_test_client:job_created(R4),
   {ok, R5} = gearman_test_common:get_response(WorkerSocket),
+  io:format("R5 = ~p~n", [R5]),
   R5 = gearman_test_worker:noop(),
   gearman_test_worker:grab_job(WorkerSocket),
   {ok, R6} = gearman_test_common:get_response(WorkerSocket),

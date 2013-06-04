@@ -5,7 +5,7 @@
 -export([init/0]).
 -export([add_job/1, get_job/1, delete_job/1]).
 -export([add_client/1, delete_client/1]).
--export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1]).
+-export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2]).
 
 init() ->
   Tables = [
@@ -161,6 +161,12 @@ get_worker_status(Pid) when is_pid(Pid) ->
   end,
   io:format("and the result was ~p~n", [X]),
   X.
+
+update_worker_status(Pid, Status) when is_pid(Pid) ->
+  io:format("gonna update a worker, pid = ~p, status = ~p~n", [Pid, Status]),
+  WorkerStatus = #worker_status{pid = Pid, status = Status},
+  ets:insert(worker_statuses, WorkerStatus),
+  ok.
 
 get_worker_id_for_pid(Pid) when is_pid(Pid) ->
   io:format("gonna check the worker_id of me, pid = ~p~n", [Pid]),

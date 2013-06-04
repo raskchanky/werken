@@ -99,7 +99,8 @@ wakeup_workers([Pid|Rest]) ->
   io:format("wakeup_workers, Record = ~p~n", [Record]),
   case Record#worker_status.status of
     asleep ->
-      gen_server:call(Pid, wakeup_worker);
+      gen_server:call(Pid, wakeup_worker),
+      werken_storage:update_worker_status(Pid, awake);
     _ ->
       ok
   end,
