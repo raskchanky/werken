@@ -66,6 +66,6 @@ submit_job_and_verify(ClientFunc, VerifyFunc, Args) ->
   {ok, JobHandle} = gearman_test_client:job_created(R2),
   Handle = JobHandle,
   timer:sleep(1000),
-  {ok, Job} = gen_server:call(werken_coordinator, {get_job, job_id, JobHandle}),
+  Job = werken_storage:get_job(JobHandle),
   VerifyFunc(Job),
   gearman_test_common:disconnect(ClientSocket).
