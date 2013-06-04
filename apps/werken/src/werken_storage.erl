@@ -131,7 +131,8 @@ delete_worker(Pid) when is_pid(Pid) ->
 get_worker_function_names_for_pid(Pid) when is_pid(Pid) ->
   case ets:lookup(worker_functions, Pid) of
     [] ->
-      io:format("tried to find some function names for pid ~p, failed. got [].~n", [Pid]);
+      io:format("tried to find some function names for pid ~p, failed. got [].~n", [Pid]),
+      [];
     Workers ->
       io:format("found some worker function name(s) = ~p~n", [Workers]),
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
