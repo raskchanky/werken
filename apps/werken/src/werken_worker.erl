@@ -33,10 +33,10 @@ pre_sleep() ->
   ok.
 
 grab_job() ->
-  case gen_server:call(werken_coordinator, {get_job, self()}) of
-    {ok, []} ->
+  case werken_storage_job:get_job(self()) of
+    [] ->
       {binary, ["NO_JOB"]};
-    {ok, Job} ->
+    Job ->
       {binary, ["JOB_ASSIGN", Job#job.job_id, Job#job.function_name, Job#job.data]}
   end.
 
@@ -47,7 +47,7 @@ work_status(JobHandle, Numerator, Denominator) ->
 work_complete(JobHandle, Data) ->
   io:format("inside werken_worker, work_complete function. JobHandle = ~p, Data = ~p~n", [JobHandle, Data]),
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
-  gen_server:call(werken_coordinator, {delete_job, JobHandle}),
+  werken_storage_job:delete_job(JobHandle),
   ok.
 
 work_fail(JobHandle) ->
@@ -94,7 +94,6 @@ notify_clients_if_necessary(Job, Packet) ->
       Pid = Job#job.client_pid,
       Func = fun() -> {binary, Packet} end,
       gen_server:cast(Pid, {process_packet, Func});
-      % gen_server:cast(werken_coordinator, {respond_to_client, Job#job.client_pid, Packet});
     _ -> ok
   end.
 

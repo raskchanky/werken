@@ -23,8 +23,9 @@ submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
   Client = #client{pid = self(),
                    function_name = FunctionName,
                    data = Data},
-  gen_server:call(werken_coordinator, {add_client, Client}),
-  gen_server:call(werken_coordinator, {add_job, Job}),
+  werken_storage_client:add_client(Client),
+  werken_storage_job:add_job(Job),
+  spawn(fun() -> wakeup_workers_for_job(Job) end),
   {binary, ["JOB_CREATED", JobId]}.
 
 submit_job_high(FunctionName, UniqueId, Data) ->
@@ -53,3 +54,27 @@ submit_job_sched(_FunctionName, _UniqueId, _Data) ->
 
 submit_job_epoch(_FunctionName, _UniqueId, _Data) ->
   ok.
+
+% private
+wakeup_workers_for_job(Job) ->
+  io:format("wakeup_workers_for_job, Job = ~p~n", [Job]),
+  Pids = werken_storage_worker:get_worker_pids_for_function_name(Job#job.function_name),
+  io:format("wakeup_workers_for_job, Pids = ~p~n", [Pids]),
+  wakeup_workers(Pids).
+
+wakeup_workers([]) ->
+  io:format("wakeup_workers, all out of workers. bye bye~n"),
+  ok;
+
+wakeup_workers([Pid|Rest]) ->
+  io:format("wakeup_workers, Pid = ~p, Rest = ~p~n", [Pid, Rest]),
+  Record = werken_storage_worker:get_worker_status(Pid),
+  io:format("wakeup_workers, Record = ~p~n", [Record]),
+  case Record#worker_status.status of
+    asleep ->
+      gen_server:call(Pid, wakeup_worker),
+      werken_storage_worker:update_worker_status(Pid, awake);
+    _ ->
+      ok
+  end,
+  wakeup_workers(Rest).

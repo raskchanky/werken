@@ -50,7 +50,8 @@ handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
   {noreply, State};
 
 handle_info({tcp_closed, _Sock}, State) ->
-  gen_server:cast(werken_coordinator, {delete_connection, self()}),
+  werken_storage_client:delete_client(self()),
+  werken_storage_worker:delete_worker(self()),
   {stop, normal, State};
 
 handle_info(_M, State) ->
