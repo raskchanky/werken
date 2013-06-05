@@ -3,7 +3,7 @@
 
 workers() ->
   io:format("AWWW SHIT INSIDE WORKERS() YO~n"),
-  Workers = werken_storage:list_workers(),
+  Workers = werken_storage_worker:list_workers(),
   Result = case Workers of
     [] ->
       ".\n";

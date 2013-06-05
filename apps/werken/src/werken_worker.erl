@@ -10,26 +10,26 @@ work_warning/2, grab_job_uniq/0]).
 can_do(FunctionName) ->
   WorkerFunction = #worker_function{pid = self(), function_name = FunctionName},
   WorkerStatus = #worker_status{pid = self(), status = awake},
-  werken_storage:add_worker(WorkerFunction),
-  werken_storage:add_worker(WorkerStatus),
+  werken_storage_worker:add_worker(WorkerFunction),
+  werken_storage_worker:add_worker(WorkerStatus),
   io:format("HI THERE~n"),
-  case werken_storage:get_worker_id_for_pid(self()) of
+  case werken_storage_worker:get_worker_id_for_pid(self()) of
     [] -> set_client_id();
     _ -> ok
   end,
   ok.
 
 cant_do(FunctionName) ->
-  werken_storage:remove_function_from_worker(FunctionName, self()),
+  werken_storage_worker:remove_function_from_worker(FunctionName, self()),
   ok.
 
 reset_abilities() ->
-  werken_storage:remove_function_from_worker(all, self()),
+  werken_storage_worker:remove_function_from_worker(all, self()),
   ok.
 
 pre_sleep() ->
   WorkerStatus = #worker_status{pid = self(), status = asleep},
-  werken_storage:add_worker(WorkerStatus),
+  werken_storage_worker:add_worker(WorkerStatus),
   ok.
 
 grab_job() ->
@@ -62,7 +62,7 @@ set_client_id() ->
 set_client_id(ClientId) ->
   Worker = #worker{pid = self(), worker_id = ClientId},
   io:format("Worker ~p~n", [Worker]),
-  werken_storage:add_worker(Worker),
+  werken_storage_worker:add_worker(Worker),
   ok.
 
 can_do_timeout(_FunctionName, _Timeout) ->
@@ -101,6 +101,6 @@ notify_clients_if_necessary(Job, Packet) ->
 forward_packet_to_client(Name, Args) ->
   io:format("forward_packet_to_client. Name = ~p, Args = ~p~n", [Name, Args]),
   JobHandle = hd(Args),
-  Job = werken_storage:get_job(JobHandle),
+  Job = werken_storage_job:get_job(JobHandle),
   io:format("forward_packet_to_client. JobHandle = ~p, Job = ~p~n", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).
