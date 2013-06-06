@@ -40,10 +40,10 @@ decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Func.
 
 num_to_module(16) ->
-  werken_coordinator;
+  werken_connection;
 
 num_to_module(26) ->
-  werken_coordinator;
+  werken_connection;
 
 num_to_module(Num) ->
   WorkerCommands = [1, 2, 3, 4, 9, 12, 13, 14, 22, 23, 24, 25, 28, 29, 30],

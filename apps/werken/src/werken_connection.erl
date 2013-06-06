@@ -2,7 +2,7 @@
 -behavior(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/1, echo_req/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -10,9 +10,14 @@
 
 -record(state, {socket}).
 
+% API
 start_link(Socket) ->
   gen_server:start_link(?MODULE, Socket, []).
 
+echo_req(Data) ->
+  {binary, ["ECHO_RES", Data]}.
+
+% callbacks
 init(Socket) ->
   gen_server:cast(self(), accept),
   {ok, #state{socket = Socket}}.
