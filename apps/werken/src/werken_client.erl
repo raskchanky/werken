@@ -3,8 +3,8 @@
 
 %% API
 -export([submit_job/3, get_status/1, submit_job_bg/3, submit_job_high/3,
-submit_job_high_bg/3, submit_job_low/3, submit_job_low_bg/3, submit_job_sched/3,
-submit_job_epoch/3, option_req/1]).
+submit_job_high_bg/3, submit_job_low/3, submit_job_low_bg/3, submit_job_sched/8,
+submit_job_epoch/4, option_req/1]).
 
 %% API
 submit_job(FunctionName, UniqueId, Data) ->
@@ -43,16 +43,18 @@ submit_job_high_bg(FunctionName, UniqueId, Data) ->
 submit_job_low_bg(FunctionName, UniqueId, Data) ->
   submit_job(FunctionName, UniqueId, Data, low, true).
 
+submit_job_sched(FunctionName, UniqueId, Minute, Hour, DayOfMonth, Month, DayOfWeek, Data) ->
+  Time = werken_utils:date_to_milliseconds(Minute, Hour, DayOfMonth, Month, DayOfWeek),
+  timer:apply_after(Time, ?MODULE, submit_job, [FunctionName, UniqueId, Data, normal, true]).
+
+submit_job_epoch(FunctionName, UniqueId, Epoch, Data) ->
+  Time = werken_utils:epoch_to_milliseconds(Epoch),
+  timer:apply_after(Time, ?MODULE, submit_job, [FunctionName, UniqueId, Data, normal, true]).
+
 get_status(_JobHandle) ->
   ok.
 
 option_req(_Option) ->
-  ok.
-
-submit_job_sched(_FunctionName, _UniqueId, _Data) ->
-  ok.
-
-submit_job_epoch(_FunctionName, _UniqueId, _Data) ->
   ok.
 
 % private

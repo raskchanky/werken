@@ -1,5 +1,48 @@
 -module(werken_utils).
--export([size_or_length/1, generate_job_id/0, generate_worker_id/0, generate_client_id/0, args_to_list/1, list_to_null_list/1, merge_records/3]).
+-export([date_to_milliseconds/5, epoch_to_milliseconds/1, size_or_length/1, generate_job_id/0, generate_worker_id/0, generate_client_id/0, args_to_list/1, list_to_null_list/1, merge_records/3]).
+
+% refactor all this shit
+epoch_to_milliseconds(Epoch) ->
+  UnixEpoch={{1970, 1, 1}, {0, 0, 0}},
+  UnixSeconds = calendar:datetime_to_gregorian_seconds(UnixEpoch),
+  Now = calendar:now_to_universal_time(erlang:now()),
+  NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
+  NowEpoch = NowSeconds - UnixSeconds,
+  case Epoch > NowEpoch of
+    true ->
+      (Epoch - NowEpoch) * 1000;
+    _ ->
+      0
+  end.
+
+date_to_milliseconds(Minute, Hour, DayOfMonth, Month, []) ->
+  {{Y, _, _}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
+  DateTime = {{Y, Month, DayOfMonth}, {Hour, Minute, 0}},
+  Seconds = calendar:datetime_to_gregorian_seconds(DateTime),
+  Now = calendar:now_to_universal_time(erlang:now()),
+  NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
+  case Seconds > NowSeconds of
+    true ->
+      (Seconds - NowSeconds) * 1000;
+    _ ->
+      0
+  end;
+
+date_to_milliseconds(Minute, Hour, [], Month, DayOfWeek) ->
+  {{Y, M, D}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
+  CurrentDayOfWeek = calendar:day_of_the_week(Y, M, D), % this is 1 based, gearman is 0 based
+  NewCurrentDayOfWeek = CurrentDayOfWeek - 1,
+  Offset = case DayOfWeek >= NewCurrentDayOfWeek of
+    true ->
+      DayOfWeek - NewCurrentDayOfWeek;
+    _ ->
+      (7 - NewCurrentDayOfWeek) + DayOfWeek
+  end,
+  NewDay = Offset + D,
+  date_to_milliseconds(Minute, Hour, NewDay, Month, []);
+
+date_to_milliseconds(Minute, Hour, DayOfMonth, Month, _DayOfWeek) ->
+  date_to_milliseconds(Minute, Hour, DayOfMonth, Month, []).
 
 size_or_length(Term) when is_binary(Term) ->
   size(Term);
@@ -50,7 +93,7 @@ merge_records(RecordName, RecordA, RecordB) ->
             tl(tuple_to_list(RecordB)),
             []))).
 
-%% internal functions
+%% private functions
 random_int() ->
   A = erlang:phash2(erlang:now()),
   B = erlang:phash2(crypto:strong_rand_bytes(64)),
