@@ -6,27 +6,11 @@
 submit_job_high_bg/3, submit_job_low/3, submit_job_low_bg/3, submit_job_sched/8,
 submit_job_epoch/4, option_req/1]).
 
+-export([generate_records_and_insert_job/7]).
+
 %% API
 submit_job(FunctionName, UniqueId, Data) ->
   submit_job(FunctionName, UniqueId, Data, normal, false).
-
-submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
-  JobId = werken_utils:generate_job_id(),
-  Job = #job{job_id = JobId,
-             function_name = FunctionName,
-             data = Data,
-             submitted_at = erlang:now(),
-             unique_id = UniqueId,
-             client_pid = self(),
-             priority = Priority,
-             bg = Bg},
-  Client = #client{pid = self(),
-                   function_name = FunctionName,
-                   data = Data},
-  werken_storage_client:add_client(Client),
-  werken_storage_job:add_job(Job),
-  spawn(fun() -> wakeup_workers_for_job(Job) end),
-  {binary, ["JOB_CREATED", JobId]}.
 
 submit_job_high(FunctionName, UniqueId, Data) ->
   submit_job(FunctionName, UniqueId, Data, high, false).
@@ -45,11 +29,11 @@ submit_job_low_bg(FunctionName, UniqueId, Data) ->
 
 submit_job_sched(FunctionName, UniqueId, Minute, Hour, DayOfMonth, Month, DayOfWeek, Data) ->
   Time = werken_utils:date_to_milliseconds(Minute, Hour, DayOfMonth, Month, DayOfWeek),
-  timer:apply_after(Time, ?MODULE, submit_job, [FunctionName, UniqueId, Data, normal, true]).
+  submit_job(FunctionName, UniqueId, Data, normal, true, Time).
 
 submit_job_epoch(FunctionName, UniqueId, Epoch, Data) ->
   Time = werken_utils:epoch_to_milliseconds(Epoch),
-  timer:apply_after(Time, ?MODULE, submit_job, [FunctionName, UniqueId, Data, normal, true]).
+  submit_job(FunctionName, UniqueId, Data, normal, true, Time).
 
 get_status(_JobHandle) ->
   ok.
@@ -58,6 +42,40 @@ option_req(_Option) ->
   ok.
 
 % private
+submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
+  F = fun(JobId, ClientPid) -> apply(?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid]) end,
+  submit_job(F).
+
+submit_job(FunctionName, UniqueId, Data, Priority, Bg, Time) ->
+  F = fun(JobId, ClientPid) -> timer:apply_after(Time, ?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid]) end,
+  submit_job(F).
+
+submit_job(Func) when is_function(Func) ->
+  JobId = werken_utils:generate_job_id(),
+  ClientPid = self(),
+  spawn(fun() -> Func(JobId, ClientPid) end),
+  job_created_packet(JobId).
+
+job_created_packet(JobId) ->
+  {binary, ["JOB_CREATED", JobId]}.
+
+generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid) ->
+  Job = #job{job_id = JobId,
+             function_name = FunctionName,
+             data = Data,
+             submitted_at = erlang:now(),
+             unique_id = UniqueId,
+             client_pid = ClientPid,
+             priority = Priority,
+             bg = Bg},
+  Client = #client{pid = ClientPid,
+                   function_name = FunctionName,
+                   data = Data},
+  werken_storage_client:add_client(Client),
+  werken_storage_job:add_job(Job),
+  spawn(fun() -> wakeup_workers_for_job(Job) end),
+  ok.
+
 wakeup_workers_for_job(Job) ->
   io:format("wakeup_workers_for_job, Job = ~p~n", [Job]),
   Pids = werken_storage_worker:get_worker_pids_for_function_name(Job#job.function_name),

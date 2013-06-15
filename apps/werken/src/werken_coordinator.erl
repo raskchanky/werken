@@ -27,6 +27,10 @@ handle_info(timeout, State) ->
 handle_call(Msg, _From, State) ->
   {reply, {ok, Msg}, State}.
 
+handle_cast({submit_delayed_job, Time, Args}, State) ->
+  spawn(fun() -> timer:apply_after(Time, werken_client, submit_job, Args) end),
+  {noreply, State};
+
 handle_cast(stop, State) ->
   {stop, normal, State}.
 

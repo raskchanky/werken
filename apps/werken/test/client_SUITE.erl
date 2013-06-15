@@ -2,9 +2,9 @@
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
--export([submit_job/1, submit_job_low/1, submit_job_high/1, submit_job_bg/1, submit_job_low_bg/1, submit_job_high_bg/1]).
+-export([submit_job/1, submit_job_low/1, submit_job_high/1, submit_job_bg/1, submit_job_low_bg/1, submit_job_high_bg/1, submit_job_epoch/1]).
  
-all() -> [submit_job, submit_job_low, submit_job_high, submit_job_bg, submit_job_low_bg, submit_job_high_bg].
+all() -> [submit_job, submit_job_low, submit_job_high, submit_job_bg, submit_job_low_bg, submit_job_high_bg, submit_job_epoch].
 
 init_per_testcase(_, Config) ->
   application:start(werken),
@@ -57,6 +57,16 @@ submit_job_high_bg(_Config) ->
         true = Job#job.bg
       end,
   submit_job_and_verify(submit_job_high_bg, F, ["reverse", "test"]).
+
+submit_job_epoch(_Config) ->
+  N = werken_utils:now_to_epoch(),
+  Epoch = N + 5, % 5 seconds from now
+  F = fun(Job) ->
+        normal = Job#job.priority,
+        true = Job#job.bg,
+        Epoch = Job#job.submitted_at
+      end,
+  submit_job_and_verify(submit_job_epoch, F, ["reverse", "test", Epoch]).
 
 submit_job_and_verify(ClientFunc, VerifyFunc, Args) ->
   {ok, ClientSocket} = gearman_test_common:connect(),
