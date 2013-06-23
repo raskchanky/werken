@@ -61,24 +61,27 @@ job_created_packet(JobId) ->
 
 generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid) ->
   Job = #job{job_id = JobId,
-             function_name = FunctionName,
              data = Data,
              submitted_at = erlang:now(),
              unique_id = UniqueId,
              client_pid = ClientPid,
-             priority = Priority,
              bg = Bg},
+  JobFunction = #job_function{job_id = JobId,
+                              priority = Priority,
+                              available = true,
+                              function_name = FunctionName},
   Client = #client{pid = ClientPid,
                    function_name = FunctionName,
                    data = Data},
   werken_storage_client:add_client(Client),
   werken_storage_job:add_job(Job),
-  spawn(fun() -> wakeup_workers_for_job(Job) end),
+  werken_storage_job:add_job(JobFunction),
+  spawn(fun() -> wakeup_workers_for_job(JobFunction) end),
   ok.
 
-wakeup_workers_for_job(Job) ->
-  io:format("wakeup_workers_for_job, Job = ~p~n", [Job]),
-  Pids = werken_storage_worker:get_worker_pids_for_function_name(Job#job.function_name),
+wakeup_workers_for_job(JobFunction) ->
+  io:format("wakeup_workers_for_job, JobFunction = ~p~n", [JobFunction]),
+  Pids = werken_storage_worker:get_worker_pids_for_function_name(JobFunction#job_function.function_name),
   io:format("wakeup_workers_for_job, Pids = ~p~n", [Pids]),
   wakeup_workers(Pids).
 

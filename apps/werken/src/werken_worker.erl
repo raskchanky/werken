@@ -37,7 +37,8 @@ grab_job() ->
     [] ->
       {binary, ["NO_JOB"]};
     Job ->
-      {binary, ["JOB_ASSIGN", Job#job.job_id, Job#job.function_name, Job#job.data]}
+      JobFunction = werken_storage_job:get_job_function_for_job(Job),
+      {binary, ["JOB_ASSIGN", Job#job.job_id, JobFunction#job_function.function_name, Job#job.data]}
   end.
 
 work_status(JobHandle, Numerator, Denominator) ->

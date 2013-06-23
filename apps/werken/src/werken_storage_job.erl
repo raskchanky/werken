@@ -1,13 +1,27 @@
 -module(werken_storage_job).
--export([add_job/1, get_job/1, delete_job/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
 
-add_job(Job) ->
-  case ets:insert(jobs, Job) of
+all_jobs() ->
+  ets:tab2list(job_functions).
+
+add_job(Job=#job{}) ->
+  case ets:insert_new(jobs, Job) of
     false -> duplicate_job;
     _ -> ok
+  end;
+
+add_job(JobFunction=#job_function{}) ->
+  ets:insert(job_functions, JobFunction),
+  ok.
+
+get_job_function_for_job(Job) ->
+  MatchSpec = ets:fun2ms(fun(J = #job_function{job_id=JI}) when JI == Job#job.job_id -> J end),
+  case ets:select(job_functions, MatchSpec) of
+    [] -> error;
+    [JobFunction] -> JobFunction
   end.
 
 get_job(Pid) when is_pid(Pid) ->
@@ -59,15 +73,21 @@ get_job([], Priority) when is_atom(Priority) ->
 
 get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
   io:format("get_job, FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p~n", [FunctionName, OtherFunctionNames, Priority]),
-  MatchSpec = ets:fun2ms(fun(J = #job{function_name=F, priority=P}) when F == FunctionName andalso P == Priority -> J end),
-  case ets:select(jobs, MatchSpec) of
+  MatchSpec = ets:fun2ms(fun(J = #job_function{function_name=F, priority=P, available=true}) when F == FunctionName andalso P == Priority -> J end),
+  case ets:select(job_functions, MatchSpec) of
     [] ->
       io:format("tried to find a job, failed. got []. trying with ~p now~n", [OtherFunctionNames]),
       get_job(OtherFunctionNames, Priority);
-    [Job] ->
-      io:format("FOUND A JOB! Job = ~p~n", [Job]),
-      Job
+    JobFunctions ->
+      io:format("FOUND JOB(S)! JobFunctions = ~p~n", [JobFunctions]),
+      JobFunction = hd(JobFunctions),
+      NewJobFunction = JobFunction#job_function{available = false},
+      ets:insert(job_functions, NewJobFunction),
+      NewJobFunction
   end.
 
 delete_job(JobHandle) ->
-  ets:delete(jobs, JobHandle).
+  MS = ets:fun2ms(fun(#job_function{job_id=J}) when J == JobHandle -> true end),
+  ets:select_delete(job_functions, MS),
+  ets:delete(jobs, JobHandle),
+  ok.

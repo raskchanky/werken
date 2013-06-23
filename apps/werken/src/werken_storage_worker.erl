@@ -1,8 +1,11 @@
 -module(werken_storage_worker).
--export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2]).
+-export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2, all_worker_functions/0]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
+
+all_worker_functions() ->
+  ets:tab2list(worker_functions).
 
 add_worker(#worker{pid=Pid, worker_id=WorkerId} = NewWorker) when is_pid(Pid) andalso is_list(WorkerId) ->
   io:format("inside add_worker when adding a worker_id. worker = ~p~n", [NewWorker]),
