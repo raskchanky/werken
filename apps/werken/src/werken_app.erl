@@ -1,6 +1,9 @@
 -module(werken_app).
 -behavior(application).
 
+%% API
+-export([version/0]).
+
 %% Application callbacks
 -export([start/2, stop/1]).
 
@@ -18,3 +21,9 @@ start(_StartType, _StartArgs) ->
 
 stop(_State) ->
     ok.
+
+%% API
+version() ->
+  application:load(werken),
+  {ok, Vsn} = application:get_key(werken, vsn),
+  Vsn.

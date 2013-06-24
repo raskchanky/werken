@@ -1,5 +1,5 @@
 -module(werken_admin).
--export([workers/0, status/0, version/0]).
+-export([workers/0, status/0, version/0, shutdown/0, shutdown/1]).
 
 -include("records.hrl").
 
@@ -45,8 +45,26 @@ status() ->
   {text, Result}.
 
 version() ->
-  % TODO: make this read from the application environment variable
-  {text, "0.1.0"}.
+  Vsn = werken_app:version(),
+  Data = ["OK ", Vsn],
+  Result = io_lib:format("~s~n", [Data]),
+  {text, Result}.
+
+shutdown() ->
+  timer:apply_after(1000, werken, stop, []),
+  Result = io_lib:format("~s~n", ["OK"]),
+  {text, Result}.
+
+shutdown(_Graceful) ->
+  %% this will be tricky. essentially, we need to:
+  %% 1. close the listening socket
+  %% 2. stop the supervisor from creating any new children after sockets close
+  %% 3. wait for each child to complete its interaction and clean up after itself (see terminate/2 for gen_server)
+  %% 4. kill all children
+  %% 5. kill supervisors
+  %% https://github.com/agner/agner/blob/master/src/agner_app.erl
+  %% http://engineering.yakaz.com/2011/09/erlangotp-supervisors-corner-cases.html
+  shutdown(). % this is just temporary
 
 % private
 job_statistics([], _, Dict) ->
