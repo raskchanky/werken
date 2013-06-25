@@ -16,10 +16,17 @@ parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
   end;
 
 parse(<<AdminCommand/bytes>>) ->
-  NewCommand = binary_to_atom(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global]), utf8),
+  NewCommand = binary_to_list(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global])),
   io:format("PARSING AN ADMIN COMMAND YO. NewCommand = ~p~n", [NewCommand]),
+  [Command|Args] = case string:words(NewCommand) > 1 of
+    false -> [NewCommand];
+    true ->
+      Tokens = string:tokens(NewCommand, " "),
+      [hd(Tokens), lists:flatten(tl(Tokens))]
+  end,
+  io:format("Command = ~p, Args = ~p~n", [Command, Args]),
   Func = fun() ->
-    apply(werken_admin, NewCommand, [])
+    apply(werken_admin, list_to_atom(Command), Args)
   end,
   notify_connection_of_packet(Func),
   ok.

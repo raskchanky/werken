@@ -21,9 +21,6 @@ workers() ->
   {text, Result}.
 
 status() ->
-  % get a list of the unique function names from the existing jobs in the queue
-  % get a list of the unique function names from the existing workers connected
-  % jobs will need a 'running' flag when they get sent to a worker to get the running job count
   AllJobs = werken_storage_job:all_jobs(),
   io:format("werken_admin/status, AllJobs = ~p~n", [AllJobs]),
   AllWorkers = werken_storage_worker:all_worker_functions(),
@@ -52,10 +49,12 @@ version() ->
 
 shutdown() ->
   timer:apply_after(1000, werken, stop, []),
-  Result = io_lib:format("~s~n", ["OK"]),
-  {text, Result}.
+  return_ok().
 
-shutdown(_Graceful) ->
+shutdown("testing") ->
+  return_ok();
+
+shutdown("graceful") ->
   %% this will be tricky. essentially, we need to:
   %% 1. close the listening socket
   %% 2. stop the supervisor from creating any new children after sockets close
@@ -67,6 +66,10 @@ shutdown(_Graceful) ->
   shutdown(). % this is just temporary
 
 % private
+return_ok() ->
+  Result = io_lib:format("~s~n", ["OK"]),
+  {text, Result}.
+
 job_statistics([], _, Dict) ->
   io:format("werken_admin/job_statistics, got an empty list, gonna return Dict = ~p~n", [Dict]),
   Dict;
