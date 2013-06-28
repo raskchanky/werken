@@ -1,5 +1,5 @@
 -module(werken_storage_job).
--export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -22,6 +22,13 @@ get_job_function_for_job(Job) ->
   case ets:select(job_functions, MatchSpec) of
     [] -> error;
     [JobFunction] -> JobFunction
+  end.
+
+get_job_for_job_function(JobFunction) ->
+  MatchSpec = ets:fun2ms(fun(J = #job{job_id=JI}) when JI == JobFunction#job_function.job_id -> J end),
+  case ets:select(jobs, MatchSpec) of
+    [] -> error;
+    [Job] -> Job
   end.
 
 get_job(Pid) when is_pid(Pid) ->

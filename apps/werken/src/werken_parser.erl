@@ -3,19 +3,23 @@
 %% API
 -export([parse/1]).
 
-parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>) ->
+parse(Data) ->
+  parse(Data, []).
+
+parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
   io:format("werken_parser, parse, Command = ~p, Data = ~p~n", [Command, Data]),
   Result = decode(Command, Data),
   io:format("werken_parser, parse, Result = ~p~n", [Result]),
-  notify_connection_of_packet(Result),
+  NewList = [Result|Acc],
+  % notify_connection_of_packet(Result),
   case Rest of
     <<>> ->
-      ok;
+      NewList;
     Other ->
-      parse(Other)
+      parse(Other, NewList)
   end;
 
-parse(<<AdminCommand/bytes>>) ->
+parse(<<AdminCommand/bytes>>, _Acc) ->
   NewCommand = binary_to_list(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global])),
   io:format("PARSING AN ADMIN COMMAND YO. NewCommand = ~p~n", [NewCommand]),
   [Command|Args] = case string:words(NewCommand) > 1 of
@@ -28,12 +32,12 @@ parse(<<AdminCommand/bytes>>) ->
   Func = fun() ->
     apply(werken_admin, list_to_atom(Command), Args)
   end,
-  notify_connection_of_packet(Func),
-  ok.
+  % notify_connection_of_packet(Func),
+  [Func].
 
 % internal functions
-notify_connection_of_packet(Packet) ->
-  gen_server:cast(self(), {process_packet, Packet}).
+% notify_connection_of_packet(Packet) ->
+%   gen_server:cast(self(), {process_packet, Packet}).
 
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),

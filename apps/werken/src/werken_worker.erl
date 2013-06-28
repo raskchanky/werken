@@ -36,9 +36,9 @@ grab_job() ->
   case werken_storage_job:get_job(self()) of
     [] ->
       {binary, ["NO_JOB"]};
-    Job ->
-      JobFunction = werken_storage_job:get_job_function_for_job(Job),
-      {binary, ["JOB_ASSIGN", Job#job.job_id, JobFunction#job_function.function_name, Job#job.data]}
+    JobFunction ->
+      Job = werken_storage_job:get_job_for_job_function(JobFunction),
+      {binary, ["JOB_ASSIGN", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.data]}
   end.
 
 work_status(JobHandle, Numerator, Denominator) ->
@@ -94,7 +94,8 @@ notify_clients_if_necessary(Job, Packet) ->
     false ->
       Pid = Job#job.client_pid,
       Func = fun() -> {binary, Packet} end,
-      gen_server:cast(Pid, {process_packet, Func});
+      gen_server:call(Pid, {process_packet, Func});
+      % gen_server:cast(Pid, {process_packet, Func});
     _ -> ok
   end.
 
