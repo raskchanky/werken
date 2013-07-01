@@ -1,4 +1,5 @@
 -module(werken_storage_job).
+-compile([{parse_transform, lager_transform}]).
 -export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1]).
 
 -include("records.hrl").
@@ -35,18 +36,18 @@ get_job(Pid) when is_pid(Pid) ->
   Workers1 = ets:tab2list(workers),
   Workers2 = ets:tab2list(worker_statuses),
   Workers3 = ets:tab2list(worker_functions),
-  io:format("werken_storage_job. get_job/pid Pid = ~p~n", [Pid]),
-  io:format("werken_storage_job. get_job/pid workers 1 = ~p~n", [Workers1]),
-  io:format("werken_storage_job. get_job/pid workers 2 = ~p~n", [Workers2]),
-  io:format("werken_storage_job. get_job/pid workers 3 = ~p~n", [Workers3]),
+  lager:debug("werken_storage_job. get_job/pid Pid = ~p", [Pid]),
+  lager:debug("werken_storage_job. get_job/pid workers 1 = ~p", [Workers1]),
+  lager:debug("werken_storage_job. get_job/pid workers 2 = ~p", [Workers2]),
+  lager:debug("werken_storage_job. get_job/pid workers 3 = ~p", [Workers3]),
   X = case ets:lookup(worker_functions, Pid) of
     [] -> [];
     Workers ->
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
-      io:format("werken_storage_job. get_job/pid FunctionNames = ~p~n", [FunctionNames]),
+      lager:debug("werken_storage_job. get_job/pid FunctionNames = ~p", [FunctionNames]),
       get_job(FunctionNames, [high, normal, low])
   end,
-  io:format("werken_storage_job. get_job/pid X = ~p~n", [X]),
+  lager:debug("werken_storage_job. get_job/pid X = ~p", [X]),
   X;
 
 get_job(JobHandle) when is_binary(JobHandle) ->
@@ -60,33 +61,33 @@ get_job(JobHandle) ->
   end.
 
 get_job(_, []) ->
-  io:format("aw shit. no priorities left. what happens now?~n"),
+  lager:debug("aw shit. no priorities left. what happens now?"),
   [];
 
 get_job(FunctionNames, [Priority|OtherPriorities]) ->
-  io:format("get_job, FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p~n", [FunctionNames, Priority, OtherPriorities]),
+  lager:debug("get_job, FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p", [FunctionNames, Priority, OtherPriorities]),
   case get_job(FunctionNames, Priority) of
     [] ->
-      io:format("tried to get jobs with FunctionNames = ~p and Priority = ~p and it failed. Trying with OtherPriorities = ~p now~n", [FunctionNames, Priority, OtherPriorities]),
+      lager:debug("tried to get jobs with FunctionNames = ~p and Priority = ~p and it failed. Trying with OtherPriorities = ~p now", [FunctionNames, Priority, OtherPriorities]),
       get_job(FunctionNames, OtherPriorities);
     Job ->
-      io:format("succeeded in getting Job = ~p~n", [Job]),
+      lager:debug("succeeded in getting Job = ~p", [Job]),
       Job
   end;
 
 get_job([], Priority) when is_atom(Priority) ->
-  io:format("bummer. out of jobs for Priority = ~p~n", [Priority]),
+  lager:debug("bummer. out of jobs for Priority = ~p", [Priority]),
   [];
 
 get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
-  io:format("get_job, FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p~n", [FunctionName, OtherFunctionNames, Priority]),
+  lager:debug("get_job, FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p", [FunctionName, OtherFunctionNames, Priority]),
   MatchSpec = ets:fun2ms(fun(J = #job_function{function_name=F, priority=P, available=true}) when F == FunctionName andalso P == Priority -> J end),
   case ets:select(job_functions, MatchSpec) of
     [] ->
-      io:format("tried to find a job, failed. got []. trying with ~p now~n", [OtherFunctionNames]),
+      lager:debug("tried to find a job, failed. got []. trying with ~p now", [OtherFunctionNames]),
       get_job(OtherFunctionNames, Priority);
     JobFunctions ->
-      io:format("FOUND JOB(S)! JobFunctions = ~p~n", [JobFunctions]),
+      lager:debug("FOUND JOB(S)! JobFunctions = ~p", [JobFunctions]),
       JobFunction = hd(JobFunctions),
       NewJobFunction = JobFunction#job_function{available = false},
       ets:insert(job_functions, NewJobFunction),

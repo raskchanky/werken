@@ -1,4 +1,5 @@
 -module(werken_connection).
+-compile([{parse_transform, lager_transform}]).
 -behavior(gen_server).
 
 %% API
@@ -30,9 +31,9 @@ handle_call(get_socket, _From, State = #state{socket = Socket}) ->
   {reply, {ok, Socket}, State};
 
 handle_call({process_packet, Func}, _From, #state{socket = Socket} = State) ->
-  io:format("werken_connection, process_packet, Func ~p~n", [Func]),
+  lager:debug("werken_connection, process_packet, Func ~p", [Func]),
   Result = Func(),
-  io:format("werken_connection, process_packet, Result ~p~n", [Result]),
+  lager:debug("werken_connection, process_packet, Result ~p", [Result]),
   werken_response:send_response(Result, Socket),
   {reply, ok, State};
 
@@ -46,9 +47,9 @@ handle_cast(accept, State = #state{socket=LSock}) ->
   {noreply, State#state{socket=Socket}};
 
 % handle_cast({process_packet, Func}, #state{socket = Socket} = State) ->
-%   io:format("werken_connection, process_packet, Func ~p~n", [Func]),
+%   lager:debug("werken_connection, process_packet, Func ~p", [Func]),
 %   Result = Func(),
-%   io:format("werken_connection, process_packet, Result ~p~n", [Result]),
+%   lager:debug("werken_connection, process_packet, Result ~p", [Result]),
 %   werken_response:send_response(Result, Socket),
 %   {noreply, State};
 
@@ -56,9 +57,9 @@ handle_cast(stop, State) ->
   {stop, normal, State}.
 
 handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
-  io:format("just received raw data ~p~n", [RawData]),
+  lager:debug("just received raw data ~p", [RawData]),
   Results = werken_parser:parse(RawData),
-  io:format("finished parsing all the shit. Results = ~p~n", [Results]),
+  lager:debug("finished parsing all the shit. Results = ~p", [Results]),
   process_results(lists:reverse(Results), Sock),
   inet:setopts(Sock, [{active, once}]),
   {noreply, State};
@@ -79,13 +80,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 % private
 process_results([], _Socket) ->
-  io:format("process_results.  all done processing. returning ok."),
+  lager:debug("process_results.  all done processing. returning ok."),
   ok;
 
 process_results([Result|Rest], Socket) ->
-  io:format("process_results. Result = ~p, Rest = ~p~n", [Result, Rest]),
+  lager:debug("process_results. Result = ~p, Rest = ~p", [Result, Rest]),
   Data = Result(),
-  io:format("process_results. Data = ~p~n", [Data]),
+  lager:debug("process_results. Data = ~p", [Data]),
   werken_response:send_response(Data, Socket),
-  io:format("process_results. just finished sending a response. recursing now~n"),
+  lager:debug("process_results. just finished sending a response. recursing now"),
   process_results(Rest, Socket).

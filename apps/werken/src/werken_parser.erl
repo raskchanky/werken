@@ -1,4 +1,5 @@
 -module(werken_parser).
+-compile([{parse_transform, lager_transform}]).
 
 %% API
 -export([parse/1]).
@@ -7,9 +8,9 @@ parse(Data) ->
   parse(Data, []).
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
-  io:format("werken_parser, parse, Command = ~p, Data = ~p~n", [Command, Data]),
+  lager:debug("werken_parser, parse, Command = ~p, Data = ~p", [Command, Data]),
   Result = decode(Command, Data),
-  io:format("werken_parser, parse, Result = ~p~n", [Result]),
+  lager:debug("werken_parser, parse, Result = ~p", [Result]),
   NewList = [Result|Acc],
   % notify_connection_of_packet(Result),
   case Rest of
@@ -21,14 +22,14 @@ parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
 
 parse(<<AdminCommand/bytes>>, _Acc) ->
   NewCommand = binary_to_list(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global])),
-  io:format("PARSING AN ADMIN COMMAND YO. NewCommand = ~p~n", [NewCommand]),
+  lager:debug("PARSING AN ADMIN COMMAND YO. NewCommand = ~p", [NewCommand]),
   [Command|Args] = case string:words(NewCommand) > 1 of
     false -> [NewCommand];
     true ->
       Tokens = string:tokens(NewCommand, " "),
       [hd(Tokens), lists:flatten(tl(Tokens))]
   end,
-  io:format("Command = ~p, Args = ~p~n", [Command, Args]),
+  lager:debug("Command = ~p, Args = ~p", [Command, Args]),
   Func = fun() ->
     apply(werken_admin, list_to_atom(Command), Args)
   end,
@@ -42,9 +43,9 @@ parse(<<AdminCommand/bytes>>, _Acc) ->
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),
   Command = num_to_command(Num),
-  io:format("Module = ~p, Command = ~p~n", [Module, Command]),
+  lager:debug("Module = ~p, Command = ~p", [Module, Command]),
   Z = werken_utils:args_to_list(Data),
-  io:format("Data = ~p~n", [Z]),
+  lager:debug("Data = ~p", [Z]),
   Func = fun() ->
     apply(Module, Command, werken_utils:args_to_list(Data))
   end,

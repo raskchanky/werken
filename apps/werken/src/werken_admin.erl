@@ -1,10 +1,11 @@
 -module(werken_admin).
+-compile([{parse_transform, lager_transform}]).
 -export([workers/0, status/0, version/0, shutdown/0, shutdown/1]).
 
 -include("records.hrl").
 
 workers() ->
-  io:format("AWWW SHIT INSIDE WORKERS() YO~n"),
+  lager:debug("AWWW SHIT INSIDE WORKERS() YO"),
   Workers = werken_storage_worker:list_workers(),
   Result = case Workers of
     [] ->
@@ -22,23 +23,23 @@ workers() ->
 
 status() ->
   AllJobs = werken_storage_job:all_jobs(),
-  io:format("werken_admin/status, AllJobs = ~p~n", [AllJobs]),
+  lager:debug("werken_admin/status, AllJobs = ~p", [AllJobs]),
   AllWorkers = werken_storage_worker:all_worker_functions(),
-  io:format("werken_admin/status, AllWorkers = ~p~n", [AllWorkers]),
+  lager:debug("werken_admin/status, AllWorkers = ~p", [AllWorkers]),
   WorkerCounts = worker_counts(AllWorkers, dict:new()),
-  io:format("werken_admin/status, WorkerCounts = ~p~n", [WorkerCounts]),
+  lager:debug("werken_admin/status, WorkerCounts = ~p", [WorkerCounts]),
   StartingDict = setup_initial_data(WorkerCounts),
-  io:format("werken_admin/status, StartingDict = ~p~n", [StartingDict]),
+  lager:debug("werken_admin/status, StartingDict = ~p", [StartingDict]),
   Dict = job_statistics(AllJobs, WorkerCounts, StartingDict),
-  io:format("werken_admin/status, Dict = ~p~n", [Dict]),
+  lager:debug("werken_admin/status, Dict = ~p", [Dict]),
   Data = lists:map(fun({FunctionName, {Total, Running, Available}}) ->
           [FunctionName, 9, integer_to_list(Total), 9, integer_to_list(Running), 9, integer_to_list(Available)]
       end, dict:to_list(Dict)),
-  io:format("werken_admin/status, Data = ~p~n", [Data]),
+  lager:debug("werken_admin/status, Data = ~p", [Data]),
   NewData = string:join(Data, "\n"),
-  io:format("werken_admin/status, NewData = ~p~n", [NewData]),
+  lager:debug("werken_admin/status, NewData = ~p", [NewData]),
   Result = io_lib:format("~s~n.~n", [NewData]),
-  io:format("werken_admin/status, Result = ~p~n", [Result]),
+  lager:debug("werken_admin/status, Result = ~p", [Result]),
   {text, Result}.
 
 version() ->
@@ -71,49 +72,49 @@ return_ok() ->
   {text, Result}.
 
 job_statistics([], _, Dict) ->
-  io:format("werken_admin/job_statistics, got an empty list, gonna return Dict = ~p~n", [Dict]),
+  lager:debug("werken_admin/job_statistics, got an empty list, gonna return Dict = ~p", [Dict]),
   Dict;
 
 job_statistics([#job_function{function_name=FN, available=A}|Rest], WorkerCounts, Dict) ->
-  io:format("werken_admin/job_statistics, function_name = ~p, available = ~p, Rest = ~p, WorkerCounts = ~p, Dict = ~p~n", [FN, A, Rest, WorkerCounts, Dict]),
+  lager:debug("werken_admin/job_statistics, function_name = ~p, available = ~p, Rest = ~p, WorkerCounts = ~p, Dict = ~p", [FN, A, Rest, WorkerCounts, Dict]),
   T = case dict:find(FN, Dict) of
     {ok, Value} ->
-      io:format("werken_admin/job_statistics, Value = ~p~n", [Value]),
+      lager:debug("werken_admin/job_statistics, Value = ~p", [Value]),
       statistics_tuple(Value, FN, WorkerCounts, A);
     error ->
-      io:format("werken_admin/job_statistics, got an error because ~p is not in Dict ~p~n", [FN, Dict]),
+      lager:debug("werken_admin/job_statistics, got an error because ~p is not in Dict ~p", [FN, Dict]),
       statistics_tuple({0, 0, 0}, FN, WorkerCounts, A)
   end,
-  io:format("werken_admin/job_statistics, T = ~p~n", [T]),
+  lager:debug("werken_admin/job_statistics, T = ~p", [T]),
   NewDict = dict:store(FN, T, Dict),
-  io:format("werken_admin/job_statistics, NewDict = ~p~n", [NewDict]),
+  lager:debug("werken_admin/job_statistics, NewDict = ~p", [NewDict]),
   job_statistics(Rest, WorkerCounts, NewDict).
 
 statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts, true) ->
-  io:format("werken_admin/statistics_tuple/true, Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p~n", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
+  lager:debug("werken_admin/statistics_tuple/true, Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
   C = worker_count_for_function_name(FunctionName, WorkerCounts),
-  io:format("werken_admin/statistics_tuple/true, C = ~p~n", [C]),
+  lager:debug("werken_admin/statistics_tuple/true, C = ~p", [C]),
   {Total+1, Running+1, C};
 
 statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts, false) ->
-  io:format("werken_admin/statistics_tuple/false, Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p~n", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
+  lager:debug("werken_admin/statistics_tuple/false, Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
   C = worker_count_for_function_name(FunctionName, WorkerCounts),
-  io:format("werken_admin/statistics_tuple/false, C = ~p~n", [C]),
+  lager:debug("werken_admin/statistics_tuple/false, C = ~p", [C]),
   {Total+1, Running, C}.
 
 worker_counts([], Dict) ->
-  io:format("werken_admin/worker_counts, got an empty list, returning Dict ~p~n", [Dict]),
+  lager:debug("werken_admin/worker_counts, got an empty list, returning Dict ~p", [Dict]),
   Dict;
 
 worker_counts([#worker_function{function_name=FN}|Rest], Dict) ->
-  io:format("werken_admin/worker_counts, function_name = ~p, Rest = ~p, Dict = ~p~n", [FN, Rest, Dict]),
+  lager:debug("werken_admin/worker_counts, function_name = ~p, Rest = ~p, Dict = ~p", [FN, Rest, Dict]),
   C = case dict:find(FN, Dict) of
     {ok, Count} -> Count+1;
     error -> 1
   end,
-  io:format("werken_admin/worker_counts, C = ~p~n", [C]),
+  lager:debug("werken_admin/worker_counts, C = ~p", [C]),
   NewDict = dict:store(FN, C, Dict),
-  io:format("werken_admin/worker_counts, NewDict = ~p~n", [NewDict]),
+  lager:debug("werken_admin/worker_counts, NewDict = ~p", [NewDict]),
   worker_counts(Rest, NewDict).
 
 worker_count_for_function_name(FunctionName, WorkerCounts) ->
@@ -121,7 +122,7 @@ worker_count_for_function_name(FunctionName, WorkerCounts) ->
     {ok, Count} -> Count;
     error -> 0
   end,
-  io:format("werken_admin/worker_count_for_function_name, FunctionName = ~p, WorkerCounts = ~p, X = ~p~n", [FunctionName, WorkerCounts, X]),
+  lager:debug("werken_admin/worker_count_for_function_name, FunctionName = ~p, WorkerCounts = ~p, X = ~p", [FunctionName, WorkerCounts, X]),
   X.
 
 setup_initial_data(WorkerCounts) ->

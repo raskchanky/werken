@@ -1,4 +1,5 @@
 -module(werken_client).
+-compile([{parse_transform, lager_transform}]).
 -include("records.hrl").
 
 %% API
@@ -80,19 +81,19 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobI
   ok.
 
 wakeup_workers_for_job(JobFunction) ->
-  io:format("wakeup_workers_for_job, JobFunction = ~p~n", [JobFunction]),
+  lager:debug("wakeup_workers_for_job, JobFunction = ~p", [JobFunction]),
   Pids = werken_storage_worker:get_worker_pids_for_function_name(JobFunction#job_function.function_name),
-  io:format("wakeup_workers_for_job, Pids = ~p~n", [Pids]),
+  lager:debug("wakeup_workers_for_job, Pids = ~p", [Pids]),
   wakeup_workers(Pids).
 
 wakeup_workers([]) ->
-  io:format("wakeup_workers, all out of workers. bye bye~n"),
+  lager:debug("wakeup_workers, all out of workers. bye bye"),
   ok;
 
 wakeup_workers([Pid|Rest]) ->
-  io:format("wakeup_workers, Pid = ~p, Rest = ~p~n", [Pid, Rest]),
+  lager:debug("wakeup_workers, Pid = ~p, Rest = ~p", [Pid, Rest]),
   Record = werken_storage_worker:get_worker_status(Pid),
-  io:format("wakeup_workers, Record = ~p~n", [Record]),
+  lager:debug("wakeup_workers, Record = ~p", [Record]),
   case Record#worker_status.status of
     asleep ->
       gen_server:call(Pid, wakeup_worker),

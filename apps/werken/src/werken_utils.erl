@@ -1,4 +1,5 @@
 -module(werken_utils).
+-compile([{parse_transform, lager_transform}]).
 -export([now_to_epoch/0, date_to_milliseconds/5, epoch_to_milliseconds/1, size_or_length/1, generate_job_id/0, generate_worker_id/0, generate_client_id/0, args_to_list/1, list_to_null_list/1, merge_records/3]).
 
 % refactor all this shit
@@ -11,17 +12,17 @@ epoch_to_milliseconds(Epoch) when is_list(Epoch) ->
   epoch_to_milliseconds(E);
 
 epoch_to_milliseconds(Epoch) ->
-  io:format("werken_utils/epoch_to_milliseconds. Epoch = ~p~n", [Epoch]),
+  lager:debug("werken_utils/epoch_to_milliseconds. Epoch = ~p", [Epoch]),
   UnixEpoch={{1970, 1, 1}, {0, 0, 0}},
-  io:format("werken_utils/epoch_to_milliseconds. UnixEpoch = ~p~n", [UnixEpoch]),
+  lager:debug("werken_utils/epoch_to_milliseconds. UnixEpoch = ~p", [UnixEpoch]),
   UnixSeconds = calendar:datetime_to_gregorian_seconds(UnixEpoch),
-  io:format("werken_utils/epoch_to_milliseconds. UnixSeconds = ~p~n", [UnixSeconds]),
+  lager:debug("werken_utils/epoch_to_milliseconds. UnixSeconds = ~p", [UnixSeconds]),
   Now = calendar:now_to_universal_time(erlang:now()),
-  io:format("werken_utils/epoch_to_milliseconds. Now = ~p~n", [Now]),
+  lager:debug("werken_utils/epoch_to_milliseconds. Now = ~p", [Now]),
   NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
-  io:format("werken_utils/epoch_to_milliseconds. NowSeconds = ~p~n", [NowSeconds]),
+  lager:debug("werken_utils/epoch_to_milliseconds. NowSeconds = ~p", [NowSeconds]),
   NowEpoch = NowSeconds - UnixSeconds,
-  io:format("werken_utils/epoch_to_milliseconds. NowEpoch = ~p~n", [NowEpoch]),
+  lager:debug("werken_utils/epoch_to_milliseconds. NowEpoch = ~p", [NowEpoch]),
   case Epoch > NowEpoch of
     true ->
       (Epoch - NowEpoch) * 1000;
@@ -31,15 +32,15 @@ epoch_to_milliseconds(Epoch) ->
 
 date_to_milliseconds(Minute, Hour, DayOfMonth, Month, []) ->
   {{Y, _, _}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
-  io:format("werken_utils/date_to_milliseconds 1. Y = ~p~n", [Y]),
+  lager:debug("werken_utils/date_to_milliseconds 1. Y = ~p", [Y]),
   DateTime = {{Y, Month, DayOfMonth}, {Hour, Minute, 0}},
-  io:format("werken_utils/date_to_milliseconds 1. DateTime = ~p~n", [DateTime]),
+  lager:debug("werken_utils/date_to_milliseconds 1. DateTime = ~p", [DateTime]),
   Seconds = calendar:datetime_to_gregorian_seconds(DateTime),
-  io:format("werken_utils/date_to_milliseconds 1. Seconds = ~p~n", [Seconds]),
+  lager:debug("werken_utils/date_to_milliseconds 1. Seconds = ~p", [Seconds]),
   Now = calendar:now_to_universal_time(erlang:now()),
-  io:format("werken_utils/date_to_milliseconds 1. Now = ~p~n", [Now]),
+  lager:debug("werken_utils/date_to_milliseconds 1. Now = ~p", [Now]),
   NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
-  io:format("werken_utils/date_to_milliseconds 1. NowSeconds = ~p~n", [NowSeconds]),
+  lager:debug("werken_utils/date_to_milliseconds 1. NowSeconds = ~p", [NowSeconds]),
   case Seconds > NowSeconds of
     true ->
       (Seconds - NowSeconds) * 1000;
@@ -49,11 +50,11 @@ date_to_milliseconds(Minute, Hour, DayOfMonth, Month, []) ->
 
 date_to_milliseconds(Minute, Hour, [], Month, DayOfWeek) ->
   {{Y, M, D}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
-  io:format("werken_utils/date_to_milliseconds 2. Y = ~p, M = ~p, D = ~p~n", [Y, M, D]),
+  lager:debug("werken_utils/date_to_milliseconds 2. Y = ~p, M = ~p, D = ~p", [Y, M, D]),
   CurrentDayOfWeek = calendar:day_of_the_week(Y, M, D), % this is 1 based, gearman is 0 based
-  io:format("werken_utils/date_to_milliseconds 2. CurrentDayOfWeek = ~p~n", [CurrentDayOfWeek]),
+  lager:debug("werken_utils/date_to_milliseconds 2. CurrentDayOfWeek = ~p", [CurrentDayOfWeek]),
   NewCurrentDayOfWeek = CurrentDayOfWeek - 1,
-  io:format("werken_utils/date_to_milliseconds 2. NewCurrentDayOfWeek = ~p~n", [NewCurrentDayOfWeek]),
+  lager:debug("werken_utils/date_to_milliseconds 2. NewCurrentDayOfWeek = ~p", [NewCurrentDayOfWeek]),
   Offset = case DayOfWeek >= NewCurrentDayOfWeek of
     true ->
       DayOfWeek - NewCurrentDayOfWeek;
@@ -61,7 +62,7 @@ date_to_milliseconds(Minute, Hour, [], Month, DayOfWeek) ->
       (7 - NewCurrentDayOfWeek) + DayOfWeek
   end,
   NewDay = Offset + D,
-  io:format("werken_utils/date_to_milliseconds 2. NewDay = ~p~n", [NewDay]),
+  lager:debug("werken_utils/date_to_milliseconds 2. NewDay = ~p", [NewDay]),
   date_to_milliseconds(Minute, Hour, NewDay, Month, []);
 
 date_to_milliseconds(Minute, Hour, DayOfMonth, Month, _DayOfWeek) ->

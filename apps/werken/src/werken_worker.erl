@@ -1,4 +1,5 @@
 -module(werken_worker).
+-compile([{parse_transform, lager_transform}]).
 -include("records.hrl").
 
 %% API
@@ -12,7 +13,7 @@ can_do(FunctionName) ->
   WorkerStatus = #worker_status{pid = self(), status = awake},
   werken_storage_worker:add_worker(WorkerFunction),
   werken_storage_worker:add_worker(WorkerStatus),
-  io:format("HI THERE~n"),
+  lager:debug("HI THERE"),
   case werken_storage_worker:get_worker_id_for_pid(self()) of
     [] -> set_client_id();
     _ -> ok
@@ -46,7 +47,7 @@ work_status(JobHandle, Numerator, Denominator) ->
   ok.
 
 work_complete(JobHandle, Data) ->
-  io:format("inside werken_worker, work_complete function. JobHandle = ~p, Data = ~p~n", [JobHandle, Data]),
+  lager:debug("inside werken_worker, work_complete function. JobHandle = ~p, Data = ~p", [JobHandle, Data]),
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
   werken_storage_job:delete_job(JobHandle),
   ok.
@@ -57,12 +58,12 @@ work_fail(JobHandle) ->
 
 set_client_id() ->
   Id = werken_utils:generate_worker_id(),
-  io:format("Id ~p~n", [Id]),
+  lager:debug("Id ~p", [Id]),
   set_client_id(Id).
 
 set_client_id(ClientId) ->
   Worker = #worker{pid = self(), worker_id = ClientId},
-  io:format("Worker ~p~n", [Worker]),
+  lager:debug("Worker ~p", [Worker]),
   werken_storage_worker:add_worker(Worker),
   ok.
 
@@ -89,7 +90,7 @@ grab_job_uniq() ->
 
 % private functions
 notify_clients_if_necessary(Job, Packet) ->
-  io:format("notify_clients_if_necessary. Job = ~p, Packet = ~p~n", [Job, Packet]),
+  lager:debug("notify_clients_if_necessary. Job = ~p, Packet = ~p", [Job, Packet]),
   case Job#job.bg of
     false ->
       Pid = Job#job.client_pid,
@@ -100,8 +101,8 @@ notify_clients_if_necessary(Job, Packet) ->
   end.
 
 forward_packet_to_client(Name, Args) ->
-  io:format("forward_packet_to_client. Name = ~p, Args = ~p~n", [Name, Args]),
+  lager:debug("forward_packet_to_client. Name = ~p, Args = ~p", [Name, Args]),
   JobHandle = hd(Args),
   Job = werken_storage_job:get_job(JobHandle),
-  io:format("forward_packet_to_client. JobHandle = ~p, Job = ~p~n", [JobHandle, Job]),
+  lager:debug("forward_packet_to_client. JobHandle = ~p, Job = ~p", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).

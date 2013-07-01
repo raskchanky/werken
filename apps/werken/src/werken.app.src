@@ -7,8 +7,9 @@
                   kernel,
                   stdlib,
                   crypto,
-                  erlsha2
+                  erlsha2,
+                  lager
                  ]},
-  {mod, { werken_app, []}},
+  {mod, {werken_app, []}},
   {env, [{port, 4730}]}
  ]}.
