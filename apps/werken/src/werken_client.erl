@@ -81,19 +81,19 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobI
   ok.
 
 wakeup_workers_for_job(JobFunction) ->
-  lager:debug("wakeup_workers_for_job, JobFunction = ~p", [JobFunction]),
+  lager:debug("JobFunction = ~p", [JobFunction]),
   Pids = werken_storage_worker:get_worker_pids_for_function_name(JobFunction#job_function.function_name),
-  lager:debug("wakeup_workers_for_job, Pids = ~p", [Pids]),
+  lager:debug("Pids = ~p", [Pids]),
   wakeup_workers(Pids).
 
 wakeup_workers([]) ->
-  lager:debug("wakeup_workers, all out of workers. bye bye"),
+  lager:debug("all out of workers. bye bye"),
   ok;
 
 wakeup_workers([Pid|Rest]) ->
-  lager:debug("wakeup_workers, Pid = ~p, Rest = ~p", [Pid, Rest]),
+  lager:debug("Pid = ~p, Rest = ~p", [Pid, Rest]),
   Record = werken_storage_worker:get_worker_status(Pid),
-  lager:debug("wakeup_workers, Record = ~p", [Record]),
+  lager:debug("Record = ~p", [Record]),
   case Record#worker_status.status of
     asleep ->
       gen_server:call(Pid, wakeup_worker),

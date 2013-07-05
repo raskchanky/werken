@@ -8,9 +8,9 @@ parse(Data) ->
   parse(Data, []).
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
-  lager:debug("werken_parser, parse, Command = ~p, Data = ~p", [Command, Data]),
+  lager:debug("Command = ~p, Data = ~p", [Command, Data]),
   Result = decode(Command, Data),
-  lager:debug("werken_parser, parse, Result = ~p", [Result]),
+  lager:debug("Result = ~p", [Result]),
   NewList = [Result|Acc],
   % notify_connection_of_packet(Result),
   case Rest of

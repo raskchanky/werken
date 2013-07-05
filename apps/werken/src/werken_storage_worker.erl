@@ -9,17 +9,17 @@ all_worker_functions() ->
   ets:tab2list(worker_functions).
 
 add_worker(#worker{pid=Pid, worker_id=WorkerId} = NewWorker) when is_pid(Pid) andalso is_list(WorkerId) ->
-  lager:debug("inside add_worker when adding a worker_id. worker = ~p", [NewWorker]),
+  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(workers, NewWorker),
   ok;
 
 add_worker(#worker_status{pid=Pid, status=Status} = NewWorker) when is_pid(Pid) andalso is_atom(Status) ->
-  lager:debug("inside add_worker when adding a status. worker = ~p", [NewWorker]),
+  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(worker_statuses, NewWorker),
   ok;
 
 add_worker(#worker_function{pid=Pid, function_name=FunctionName} = NewWorker) when is_pid(Pid) andalso is_list(FunctionName) ->
-  lager:debug("inside add_worker when adding a function. worker = ~p", [NewWorker]),
+  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(worker_functions, NewWorker),
   ok.
 

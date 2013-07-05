@@ -31,9 +31,9 @@ handle_call(get_socket, _From, State = #state{socket = Socket}) ->
   {reply, {ok, Socket}, State};
 
 handle_call({process_packet, Func}, _From, #state{socket = Socket} = State) ->
-  lager:debug("werken_connection, process_packet, Func ~p", [Func]),
+  lager:debug("process_packet, Func ~p", [Func]),
   Result = Func(),
-  lager:debug("werken_connection, process_packet, Result ~p", [Result]),
+  lager:debug("process_packet, Result ~p", [Result]),
   werken_response:send_response(Result, Socket),
   {reply, ok, State};
 
@@ -45,13 +45,6 @@ handle_cast(accept, State = #state{socket=LSock}) ->
   werken_connection_sup:start_socket(), %% maintain 20 listeners
   inet:setopts(Socket, [{active, once}]),
   {noreply, State#state{socket=Socket}};
-
-% handle_cast({process_packet, Func}, #state{socket = Socket} = State) ->
-%   lager:debug("werken_connection, process_packet, Func ~p", [Func]),
-%   Result = Func(),
-%   lager:debug("werken_connection, process_packet, Result ~p", [Result]),
-%   werken_response:send_response(Result, Socket),
-%   {noreply, State};
 
 handle_cast(stop, State) ->
   {stop, normal, State}.
@@ -80,13 +73,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 % private
 process_results([], _Socket) ->
-  lager:debug("process_results.  all done processing. returning ok."),
+  lager:debug("all done processing. returning ok."),
   ok;
 
 process_results([Result|Rest], Socket) ->
-  lager:debug("process_results. Result = ~p, Rest = ~p", [Result, Rest]),
+  lager:debug("Result = ~p, Rest = ~p", [Result, Rest]),
   Data = Result(),
-  lager:debug("process_results. Data = ~p", [Data]),
+  lager:debug("Data = ~p", [Data]),
   werken_response:send_response(Data, Socket),
-  lager:debug("process_results. just finished sending a response. recursing now"),
+  lager:debug("just finished sending a response. recursing now"),
   process_results(Rest, Socket).

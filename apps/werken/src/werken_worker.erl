@@ -13,7 +13,6 @@ can_do(FunctionName) ->
   WorkerStatus = #worker_status{pid = self(), status = awake},
   werken_storage_worker:add_worker(WorkerFunction),
   werken_storage_worker:add_worker(WorkerStatus),
-  lager:debug("HI THERE"),
   case werken_storage_worker:get_worker_id_for_pid(self()) of
     [] -> set_client_id();
     _ -> ok
@@ -47,7 +46,7 @@ work_status(JobHandle, Numerator, Denominator) ->
   ok.
 
 work_complete(JobHandle, Data) ->
-  lager:debug("inside werken_worker, work_complete function. JobHandle = ~p, Data = ~p", [JobHandle, Data]),
+  lager:debug("JobHandle = ~p, Data = ~p", [JobHandle, Data]),
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
   werken_storage_job:delete_job(JobHandle),
   ok.
@@ -90,7 +89,7 @@ grab_job_uniq() ->
 
 % private functions
 notify_clients_if_necessary(Job, Packet) ->
-  lager:debug("notify_clients_if_necessary. Job = ~p, Packet = ~p", [Job, Packet]),
+  lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
   case Job#job.bg of
     false ->
       Pid = Job#job.client_pid,
@@ -101,8 +100,8 @@ notify_clients_if_necessary(Job, Packet) ->
   end.
 
 forward_packet_to_client(Name, Args) ->
-  lager:debug("forward_packet_to_client. Name = ~p, Args = ~p", [Name, Args]),
+  lager:debug("Name = ~p, Args = ~p", [Name, Args]),
   JobHandle = hd(Args),
   Job = werken_storage_job:get_job(JobHandle),
-  lager:debug("forward_packet_to_client. JobHandle = ~p, Job = ~p", [JobHandle, Job]),
+  lager:debug("JobHandle = ~p, Job = ~p", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).

@@ -36,18 +36,18 @@ get_job(Pid) when is_pid(Pid) ->
   Workers1 = ets:tab2list(workers),
   Workers2 = ets:tab2list(worker_statuses),
   Workers3 = ets:tab2list(worker_functions),
-  lager:debug("werken_storage_job. get_job/pid Pid = ~p", [Pid]),
-  lager:debug("werken_storage_job. get_job/pid workers 1 = ~p", [Workers1]),
-  lager:debug("werken_storage_job. get_job/pid workers 2 = ~p", [Workers2]),
-  lager:debug("werken_storage_job. get_job/pid workers 3 = ~p", [Workers3]),
+  lager:debug("Pid = ~p", [Pid]),
+  lager:debug("workers 1 = ~p", [Workers1]),
+  lager:debug("workers 2 = ~p", [Workers2]),
+  lager:debug("workers 3 = ~p", [Workers3]),
   X = case ets:lookup(worker_functions, Pid) of
     [] -> [];
     Workers ->
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
-      lager:debug("werken_storage_job. get_job/pid FunctionNames = ~p", [FunctionNames]),
+      lager:debug("FunctionNames = ~p", [FunctionNames]),
       get_job(FunctionNames, [high, normal, low])
   end,
-  lager:debug("werken_storage_job. get_job/pid X = ~p", [X]),
+  lager:debug("X = ~p", [X]),
   X;
 
 get_job(JobHandle) when is_binary(JobHandle) ->
@@ -65,7 +65,7 @@ get_job(_, []) ->
   [];
 
 get_job(FunctionNames, [Priority|OtherPriorities]) ->
-  lager:debug("get_job, FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p", [FunctionNames, Priority, OtherPriorities]),
+  lager:debug("FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p", [FunctionNames, Priority, OtherPriorities]),
   case get_job(FunctionNames, Priority) of
     [] ->
       lager:debug("tried to get jobs with FunctionNames = ~p and Priority = ~p and it failed. Trying with OtherPriorities = ~p now", [FunctionNames, Priority, OtherPriorities]),
@@ -80,7 +80,7 @@ get_job([], Priority) when is_atom(Priority) ->
   [];
 
 get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
-  lager:debug("get_job, FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p", [FunctionName, OtherFunctionNames, Priority]),
+  lager:debug("FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p", [FunctionName, OtherFunctionNames, Priority]),
   MatchSpec = ets:fun2ms(fun(J = #job_function{function_name=F, priority=P, available=true}) when F == FunctionName andalso P == Priority -> J end),
   case ets:select(job_functions, MatchSpec) of
     [] ->
