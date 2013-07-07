@@ -52,9 +52,6 @@ shutdown() ->
   timer:apply_after(1000, werken, stop, []),
   return_ok().
 
-shutdown("testing") ->
-  return_ok();
-
 shutdown("graceful") ->
   %% this will be tricky. essentially, we need to:
   %% 1. close the listening socket
