@@ -33,13 +33,10 @@ pre_sleep() ->
   ok.
 
 grab_job() ->
-  case werken_storage_job:get_job(self()) of
-    [] ->
-      {binary, ["NO_JOB"]};
-    JobFunction ->
-      Job = werken_storage_job:get_job_for_job_function(JobFunction),
-      {binary, ["JOB_ASSIGN", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.data]}
-  end.
+  lookup_job_for_me("JOB_ASSIGN").
+
+grab_job_uniq() ->
+  lookup_job_for_me("JOB_ASSIGN_UNIQ").
 
 work_status(JobHandle, Numerator, Denominator) ->
   forward_packet_to_client("WORK_STATUS", [JobHandle, Numerator, Denominator]),
@@ -84,10 +81,22 @@ work_warning(JobHandle, Data) ->
   forward_packet_to_client("WORK_WARNING", [JobHandle, Data]),
   ok.
 
-grab_job_uniq() ->
-  ok.
-
 % private functions
+lookup_job_for_me(PacketName) ->
+  case werken_storage_job:get_job(self()) of
+    [] ->
+      {binary, ["NO_JOB"]};
+    JobFunction ->
+      Job = werken_storage_job:get_job_for_job_function(JobFunction),
+      job_assign_packet(PacketName, Job, JobFunction)
+  end.
+
+job_assign_packet("JOB_ASSIGN", Job, JobFunction) ->
+  {binary, ["JOB_ASSIGN", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.data]};
+
+job_assign_packet("JOB_ASSIGN_UNIQ", Job, JobFunction) ->
+  {binary, ["JOB_ASSIGN_UNIQ", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.unique_id, Job#job.data]}.
+
 notify_clients_if_necessary(Job, Packet) ->
   lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
   case Job#job.bg of
