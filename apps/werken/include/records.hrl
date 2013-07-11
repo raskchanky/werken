@@ -6,6 +6,7 @@
 -record(client, {pid, function_name, data, client_id, result}).
 -record(job, {job_id, data, submitted_at, run_at, unique_id, client_pid, bg}).
 -record(job_function, {function_name, job_id, priority, available}).
+-record(job_status, {job_id, numerator, denominator}).
 
 %% job
 %% - we track the client_pid so when the job is finished, if it's a foreground job, we can notify the client of the result.

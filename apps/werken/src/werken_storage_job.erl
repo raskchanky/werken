@@ -1,6 +1,6 @@
 -module(werken_storage_job).
 -compile([{parse_transform, lager_transform}]).
--export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -16,6 +16,10 @@ add_job(Job=#job{}) ->
 
 add_job(JobFunction=#job_function{}) ->
   ets:insert(job_functions, JobFunction),
+  ok.
+
+add_job_status(JobStatus=#job_status{}) ->
+  ets:insert(job_statuses, JobStatus),
   ok.
 
 get_job_function_for_job(Job) ->

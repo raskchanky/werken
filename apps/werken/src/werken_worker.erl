@@ -39,6 +39,8 @@ grab_job_uniq() ->
   lookup_job_for_me("JOB_ASSIGN_UNIQ").
 
 work_status(JobHandle, Numerator, Denominator) ->
+  JobStatus = #job_status{job_id = JobHandle, numerator = Numerator, denominator = Denominator},
+  werken_storage_job:add_job_status(JobStatus),
   forward_packet_to_client("WORK_STATUS", [JobHandle, Numerator, Denominator]),
   ok.
 
