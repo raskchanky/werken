@@ -36,8 +36,21 @@ submit_job_epoch(FunctionName, UniqueId, Epoch, Data) ->
   Time = werken_utils:epoch_to_milliseconds(Epoch),
   submit_job(FunctionName, UniqueId, Data, normal, true, Time).
 
-get_status(_JobHandle) ->
-  ok.
+get_status(JobHandle) ->
+  case werken_storage_job:get_job_status(JobHandle) of
+    [] ->
+      KnownStatus = 0,
+      RunningStatus = 0,
+      Numerator = 0,
+      Denominator = 0;
+    #job_status{numerator=Numerator, denominator=Denominator} ->
+      KnownStatus = 1,
+      RunningStatus = case werken_storage_job:is_job_running(JobHandle) of
+                        true -> 1;
+                        _ -> 0
+                      end
+  end,
+  {binary, ["STATUS_RES", JobHandle, KnownStatus, RunningStatus, Numerator, Denominator]}.
 
 option_req(_Option) ->
   ok.

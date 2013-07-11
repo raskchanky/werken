@@ -1,6 +1,6 @@
 -module(werken_storage_job).
 -compile([{parse_transform, lager_transform}]).
--export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1, get_job_status/1, mark_job_as_running/1, is_job_running/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -21,6 +21,12 @@ add_job(JobFunction=#job_function{}) ->
 add_job_status(JobStatus=#job_status{}) ->
   ets:insert(job_statuses, JobStatus),
   ok.
+
+get_job_status(JobHandle) ->
+  case ets:lookup(job_statuses, JobHandle) of
+    [] -> [];
+    [JobStatus] -> JobStatus
+  end.
 
 get_job_function_for_job(Job) ->
   MatchSpec = ets:fun2ms(fun(J = #job_function{job_id=JI}) when JI == Job#job.job_id -> J end),
@@ -103,3 +109,15 @@ delete_job(JobHandle) ->
   ets:select_delete(job_functions, MS),
   ets:delete(jobs, JobHandle),
   ok.
+
+mark_job_as_running(JobHandle) ->
+  Job = get_job(JobHandle),
+  NewJob = Job#job{run_at = erlang:now()},
+  ets:insert(jobs, NewJob),
+  ok.
+
+is_job_running(JobHandle) ->
+  case ets:lookup(jobs, JobHandle) of
+    [] -> false;
+    [#job{run_at = R}] -> R =/= undefined
+  end.
