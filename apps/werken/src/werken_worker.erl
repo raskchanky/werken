@@ -90,7 +90,7 @@ lookup_job_for_me(PacketName) ->
       {binary, ["NO_JOB"]};
     JobFunction ->
       Job = werken_storage_job:get_job_for_job_function(JobFunction),
-      werken_storage_job:mark_job_as_running(Job),
+      werken_storage_job:mark_job_as_running(JobFunction),
       job_assign_packet(PacketName, Job, JobFunction)
   end.
 

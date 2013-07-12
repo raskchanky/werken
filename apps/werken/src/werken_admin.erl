@@ -72,32 +72,30 @@ job_statistics([], _, Dict) ->
   lager:debug("got an empty list, gonna return Dict = ~p", [Dict]),
   Dict;
 
-job_statistics([#job_function{function_name=FN, available=A}|Rest], WorkerCounts, Dict) ->
-  lager:debug("function_name = ~p, available = ~p, Rest = ~p, WorkerCounts = ~p, Dict = ~p", [FN, A, Rest, WorkerCounts, Dict]),
+job_statistics([#job_function{function_name=FN}|Rest], WorkerCounts, Dict) ->
+  lager:debug("function_name = ~p, Rest = ~p, WorkerCounts = ~p, Dict = ~p", [FN, Rest, WorkerCounts, Dict]),
   T = case dict:find(FN, Dict) of
     {ok, Value} ->
       lager:debug("Value = ~p", [Value]),
-      statistics_tuple(Value, FN, WorkerCounts, A);
+      statistics_tuple(Value, FN, WorkerCounts);
     error ->
       lager:debug("got an error because ~p is not in Dict ~p", [FN, Dict]),
-      statistics_tuple({0, 0, 0}, FN, WorkerCounts, A)
+      statistics_tuple({0, 0, 0}, FN, WorkerCounts)
   end,
   lager:debug("T = ~p", [T]),
   NewDict = dict:store(FN, T, Dict),
   lager:debug("NewDict = ~p", [NewDict]),
   job_statistics(Rest, WorkerCounts, NewDict).
 
-statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts, true) ->
+statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts) ->
   lager:debug("Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
   C = worker_count_for_function_name(FunctionName, WorkerCounts),
+  NewRunning = case werken_storage_job:is_job_running({function_name, FunctionName}) of
+    true -> Running + 1;
+    _ -> Running
+  end,
   lager:debug("C = ~p", [C]),
-  {Total+1, Running+1, C};
-
-statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts, false) ->
-  lager:debug("Total = ~p, Running = ~p, AvailableWorkers = ~p, FunctionName = ~p, WorkerCounts = ~p", [Total, Running, AvailableWorkers, FunctionName, WorkerCounts]),
-  C = worker_count_for_function_name(FunctionName, WorkerCounts),
-  lager:debug("C = ~p", [C]),
-  {Total+1, Running, C}.
+  {Total+1, NewRunning, C}.
 
 worker_counts([], Dict) ->
   lager:debug("got an empty list, returning Dict ~p", [Dict]),

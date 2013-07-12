@@ -99,9 +99,7 @@ get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
     JobFunctions ->
       lager:debug("FOUND JOB(S)! JobFunctions = ~p", [JobFunctions]),
       JobFunction = hd(JobFunctions),
-      NewJobFunction = JobFunction#job_function{available = false},
-      ets:insert(job_functions, NewJobFunction),
-      NewJobFunction
+      mark_job_as_running(JobFunction)
   end.
 
 delete_job(JobHandle) ->
@@ -110,14 +108,27 @@ delete_job(JobHandle) ->
   ets:delete(jobs, JobHandle),
   ok.
 
-mark_job_as_running(JobHandle) ->
-  Job = get_job(JobHandle),
-  NewJob = Job#job{run_at = erlang:now()},
-  ets:insert(jobs, NewJob),
-  ok.
+mark_job_as_running(JobFunction) ->
+  NewJobFunction = JobFunction#job_function{available = false},
+  ets:insert(job_functions, NewJobFunction),
+  NewJobFunction.
 
-is_job_running(JobHandle) ->
-  case ets:lookup(jobs, JobHandle) of
+is_job_running({job_handle, JobHandle}) ->
+  Job = get_job(JobHandle),
+  is_job_running({job, Job});
+
+is_job_running({function_name, FunctionName}) ->
+  case ets:lookup(job_functions, FunctionName) of
     [] -> false;
-    [#job{run_at = R}] -> R =/= undefined
+    JobFunctions -> lists:any(fun(JF) -> is_job_running({job_function, JF}) end, JobFunctions)
+  end;
+
+is_job_running({job, Job}) ->
+  JobFunction = get_job_function_for_job(Job),
+  is_job_running({job_function, JobFunction});
+
+is_job_running({job_function, JobFunction}) ->
+  case JobFunction#job_function.available of
+    false -> true;
+    _ -> false
   end.

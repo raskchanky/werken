@@ -45,7 +45,7 @@ get_status(JobHandle) ->
       Denominator = 0;
     #job_status{numerator=Numerator, denominator=Denominator} ->
       KnownStatus = 1,
-      RunningStatus = case werken_storage_job:is_job_running(JobHandle) of
+      RunningStatus = case werken_storage_job:is_job_running({job_handle, JobHandle}) of
                         true -> 1;
                         _ -> 0
                       end
