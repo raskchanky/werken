@@ -1,13 +1,13 @@
 -module(werken_storage_client).
--export([add_client/1, delete_client/1]).
+-export([add_client/1, delete_client/1, get_client/1]).
 
 -include("records.hrl").
 
 add_client(Client) ->
-  case ets:insert(clients, Client) of
-    false -> duplicate_client;
-    _ -> ok
-  end.
+  ets:insert(clients, Client).
+
+get_client(Pid) when is_pid(Pid) ->
+  ets:lookup(clients, Pid).
 
 delete_client(Pid) when is_pid(Pid) ->
   ets:delete(clients, Pid);

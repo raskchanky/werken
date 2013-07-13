@@ -52,10 +52,28 @@ get_status(JobHandle) ->
   end,
   {binary, ["STATUS_RES", JobHandle, KnownStatus, RunningStatus, Numerator, Denominator]}.
 
-option_req(_Option) ->
-  ok.
+option_req(Option) when is_list(Option) ->
+  case Option of
+    "exceptions" ->
+      set_exceptions_for_client(self()),
+      {binary, ["OPTION_RES", "exceptions"]};
+    _ ->
+      InterpolatedString = io_lib:format("~p is not a valid option. Valid options are: exceptions", [Option]),
+      {binary, ["ERROR", "ENOOPTION", InterpolatedString]}
+  end.
 
 % private
+set_exceptions_for_client(Pid) when is_pid(Pid) ->
+  case werken_client_storage:get_client(Pid) of
+    [] -> {error, no_client};
+    [Client] -> set_exceptions_for_client(Client)
+  end;
+
+set_exceptions_for_client(Client) ->
+  NewClient = Client#client{exceptions = true},
+  werken_client_storage:add_client(NewClient),
+  ok.
+
 submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
   F = fun(JobId, ClientPid) -> apply(?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid]) end,
   submit_job(F).

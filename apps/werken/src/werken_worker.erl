@@ -105,9 +105,13 @@ notify_clients_if_necessary(Job, Packet) ->
   case Job#job.bg of
     false ->
       Pid = Job#job.client_pid,
-      Func = fun() -> {binary, Packet} end,
-      gen_server:call(Pid, {process_packet, Func});
-      % gen_server:cast(Pid, {process_packet, Func});
+      Client = werken_storage_client:get_client(Pid),
+      case Client#client.exceptions of
+        true -> % this gets set with an OPTION_REQ request from the client
+          Func = fun() -> {binary, Packet} end,
+          gen_server:call(Pid, {process_packet, Func});
+        _ -> ok
+      end;
     _ -> ok
   end.
 
