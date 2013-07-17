@@ -10,14 +10,11 @@ work_warning/2, grab_job_uniq/0]).
 
 can_do(FunctionName) ->
   WorkerFunction = #worker_function{pid = self(), function_name = FunctionName},
-  WorkerStatus = #worker_status{pid = self(), status = awake},
-  werken_storage_worker:add_worker(WorkerFunction),
-  werken_storage_worker:add_worker(WorkerStatus),
-  case werken_storage_worker:get_worker_id_for_pid(self()) of
-    [] -> set_client_id();
-    _ -> ok
-  end,
-  ok.
+  can_do_common(WorkerFunction).
+
+can_do_timeout(FunctionName, Timeout) ->
+  WorkerFunction = #worker_function{pid = self(), function_name = FunctionName, timeout = Timeout},
+  can_do_common(WorkerFunction).
 
 cant_do(FunctionName) ->
   werken_storage_worker:remove_function_from_worker(FunctionName, self()),
@@ -52,6 +49,7 @@ work_complete(JobHandle, Data) ->
 
 work_fail(JobHandle) ->
   forward_packet_to_client("WORK_FAIL", [JobHandle]),
+  werken_storage_job:delete_job(JobHandle),
   ok.
 
 set_client_id() ->
@@ -63,9 +61,6 @@ set_client_id(ClientId) ->
   Worker = #worker{pid = self(), worker_id = ClientId},
   lager:debug("Worker ~p", [Worker]),
   werken_storage_worker:add_worker(Worker),
-  ok.
-
-can_do_timeout(_FunctionName, _Timeout) ->
   ok.
 
 all_yours() ->
@@ -84,6 +79,16 @@ work_warning(JobHandle, Data) ->
   ok.
 
 % private functions
+can_do_common(WorkerFunction) ->
+  WorkerStatus = #worker_status{pid = self(), status = awake},
+  werken_storage_worker:add_worker(WorkerFunction),
+  werken_storage_worker:add_worker(WorkerStatus),
+  case werken_storage_worker:get_worker_id_for_pid(self()) of
+    [] -> set_client_id();
+    _ -> ok
+  end,
+  ok.
+
 lookup_job_for_me(PacketName) ->
   case werken_storage_job:get_job(self()) of
     [] ->
@@ -91,7 +96,27 @@ lookup_job_for_me(PacketName) ->
     JobFunction ->
       Job = werken_storage_job:get_job_for_job_function(JobFunction),
       werken_storage_job:mark_job_as_running(JobFunction),
+      maybe_start_timer_for_job(JobFunction),
       job_assign_packet(PacketName, Job, JobFunction)
+  end.
+
+maybe_start_timer_for_job(JobFunction) ->
+  case werken_storage_worker:get_worker_function(self(), JobFunction) of
+    {error, no_worker_function} -> ok;
+    WorkerFunction ->
+      case WorkerFunction#worker_function.timeout of
+        undefined -> ok;
+        _ ->
+          Seconds = WorkerFunction#worker_function.timeout * 1000,
+          timer:apply_after(Seconds, ?MODULE, check_job_progress, [JobFunction, WorkerFunction])
+      end
+  end.
+
+check_job_progress(JobFunction, _WorkerFunction) ->
+  Job = werken_storage_job:get_job_for_job_function(JobFunction),
+  case Job of
+    error -> ok;
+    _ -> work_fail(Job#job.job_id)
   end.
 
 job_assign_packet("JOB_ASSIGN", Job, JobFunction) ->

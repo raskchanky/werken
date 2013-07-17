@@ -1,6 +1,6 @@
 -module(werken_storage_worker).
 -compile([{parse_transform, lager_transform}]).
--export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2, all_worker_functions/0]).
+-export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2, all_worker_functions/0, get_worker_function/2]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -87,6 +87,13 @@ get_worker_id_for_pid(Pid) when is_pid(Pid) ->
   end,
   lager:debug("and the result was ~p", [X]),
   X.
+
+get_worker_function(Pid, #job_function{function_name = FunctionName}) when is_pid(Pid) ->
+  MatchSpec = ets:fun2ms(fun(W = #worker_function{function_name=F, pid=P}) when F == FunctionName andalso P == Pid -> W end),
+  case ets:select(worker_functions, MatchSpec) of
+    [] -> {error, no_worker_function};
+    [WorkerFunction] -> WorkerFunction
+  end.
 
 remove_function_from_worker(all, Pid) when is_pid(Pid) ->
   ets:delete(worker_functions, Pid),

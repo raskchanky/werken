@@ -1,6 +1,6 @@
 %%% record definitions
 
--record(worker_function, {pid, function_name}).
+-record(worker_function, {pid, function_name, timeout}).
 -record(worker_status, {pid, status}).
 -record(worker, {pid, worker_id}).
 -record(client, {pid, function_name, data, client_id, result, exceptions}).
