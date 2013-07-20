@@ -1,6 +1,6 @@
 -module(werken_storage_worker).
 -compile([{parse_transform, lager_transform}]).
--export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2, all_worker_functions/0, get_worker_function/2]).
+-export([add_worker/1, list_workers/0, delete_worker/1, get_worker_pids_for_function_name/1, get_worker_status/1, get_worker_function_names_for_pid/1, remove_function_from_worker/2, get_worker_id_for_pid/1, update_worker_status/2, all_worker_functions/0, get_worker_function/2, get_worker/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -22,6 +22,10 @@ add_worker(#worker_function{pid=Pid, function_name=FunctionName} = NewWorker) wh
   lager:debug("worker = ~p", [NewWorker]),
   ets:insert(worker_functions, NewWorker),
   ok.
+
+get_worker(Pid) when is_pid(Pid) ->
+  [W] = ets:lookup(workers, Pid),
+  W.
 
 list_workers() ->
   F = fun(#worker{worker_id=W1}, #worker{worker_id=W2}) -> W1 =< W2 end,

@@ -6,7 +6,7 @@
 -export([can_do/1, cant_do/1, reset_abilities/0, pre_sleep/0, grab_job/0,
 work_status/3, work_complete/2, work_fail/1, set_client_id/0, set_client_id/1,
 can_do_timeout/2, all_yours/0, work_exception/2, work_data/2,
-work_warning/2, grab_job_uniq/0]).
+work_warning/2, grab_job_uniq/0, job_assign_packet_for_job_function/2, check_job_progress/2]).
 
 can_do(FunctionName) ->
   WorkerFunction = #worker_function{pid = self(), function_name = FunctionName},
@@ -78,6 +78,19 @@ work_warning(JobHandle, Data) ->
   forward_packet_to_client("WORK_WARNING", [JobHandle, Data]),
   ok.
 
+job_assign_packet_for_job_function(PacketName, JobFunction) ->
+  Job = werken_storage_job:get_job_for_job_function(JobFunction),
+  werken_storage_job:mark_job_as_running(JobFunction),
+  maybe_start_timer_for_job(JobFunction),
+  job_assign_packet(PacketName, Job, JobFunction).
+
+check_job_progress(JobFunction, _WorkerFunction) ->
+  Job = werken_storage_job:get_job_for_job_function(JobFunction),
+  case Job of
+    error -> ok;
+    _ -> work_fail(Job#job.job_id)
+  end.
+
 % private functions
 can_do_common(WorkerFunction) ->
   WorkerStatus = #worker_status{pid = self(), status = awake},
@@ -94,10 +107,7 @@ lookup_job_for_me(PacketName) ->
     [] ->
       {binary, ["NO_JOB"]};
     JobFunction ->
-      Job = werken_storage_job:get_job_for_job_function(JobFunction),
-      werken_storage_job:mark_job_as_running(JobFunction),
-      maybe_start_timer_for_job(JobFunction),
-      job_assign_packet(PacketName, Job, JobFunction)
+      job_assign_packet_for_job_function(PacketName, JobFunction)
   end.
 
 maybe_start_timer_for_job(JobFunction) ->
@@ -110,13 +120,6 @@ maybe_start_timer_for_job(JobFunction) ->
           Seconds = WorkerFunction#worker_function.timeout * 1000,
           timer:apply_after(Seconds, ?MODULE, check_job_progress, [JobFunction, WorkerFunction])
       end
-  end.
-
-check_job_progress(JobFunction, _WorkerFunction) ->
-  Job = werken_storage_job:get_job_for_job_function(JobFunction),
-  case Job of
-    error -> ok;
-    _ -> work_fail(Job#job.job_id)
   end.
 
 job_assign_packet("JOB_ASSIGN", Job, JobFunction) ->

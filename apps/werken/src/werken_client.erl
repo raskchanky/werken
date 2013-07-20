@@ -108,14 +108,36 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobI
   werken_storage_client:add_client(Client),
   werken_storage_job:add_job(Job),
   werken_storage_job:add_job(JobFunction),
-  spawn(fun() -> wakeup_workers_for_job(JobFunction) end),
+  spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end),
   ok.
 
-wakeup_workers_for_job(JobFunction) ->
+assign_or_wakeup_workers_for_job(JobFunction) ->
   lager:debug("JobFunction = ~p", [JobFunction]),
   Pids = werken_storage_worker:get_worker_pids_for_function_name(JobFunction#job_function.function_name),
   lager:debug("Pids = ~p", [Pids]),
-  wakeup_workers(Pids).
+  case check_eligibility_for_direct_assignment(Pids) of
+    Pid when is_pid(Pid) ->
+      Packet = werken_worker:job_assign_packet_for_job_function("JOB_ASSIGN", JobFunction),
+      Func = fun() -> {binary, Packet} end,
+      gen_server:call(Pid, {process_packet, Func});
+    _ ->
+      wakeup_workers(Pids)
+  end.
+
+check_eligibility_for_direct_assignment([]) ->
+  lager:debug("no more to check for eligibility. gonna just wake em up"),
+  not_found;
+
+check_eligibility_for_direct_assignment([Pid|Rest]) ->
+  lager:debug("Pid = ~p, Rest = ~p", [Pid, Rest]),
+  Record = werken_storage_worker:get_worker(Pid),
+  lager:debug("Record = ~p", [Record]),
+  case Record#worker.direct_assignment of
+    true ->
+      Pid;
+    _ ->
+      check_eligibility_for_direct_assignment(Rest)
+  end.
 
 wakeup_workers([]) ->
   lager:debug("all out of workers. bye bye"),
