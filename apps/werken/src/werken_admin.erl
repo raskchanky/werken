@@ -1,8 +1,11 @@
 -module(werken_admin).
 -compile([{parse_transform, lager_transform}]).
--export([workers/0, status/0, version/0, shutdown/0, shutdown/1]).
+-export([workers/0, status/0, version/0, shutdown/0, shutdown/1, maxqueue/0]).
 
 -include("records.hrl").
+
+maxqueue() ->
+  {text, "OK"}. % lulz
 
 workers() ->
   lager:debug("AWWW SHIT INSIDE WORKERS() YO"),
