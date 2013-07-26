@@ -1,6 +1,6 @@
 -module(werken_admin).
 -compile([{parse_transform, lager_transform}]).
--export([workers/0, status/0, version/0, shutdown/0, shutdown/1, maxqueue/0]).
+-export([workers/0, status/0, version/0, shutdown/0, shutdown/1, maxqueue/0, check_connections/1]).
 
 -include("records.hrl").
 
@@ -55,16 +55,23 @@ shutdown() ->
   timer:apply_after(1000, werken, stop, []),
   return_ok().
 
-shutdown("graceful") ->
-  %% this will be tricky. essentially, we need to:
-  %% 1. close the listening socket
-  %% 2. stop the supervisor from creating any new children after sockets close
-  %% 3. wait for each child to complete its interaction and clean up after itself (see terminate/2 for gen_server)
-  %% 4. kill all children
-  %% 5. kill supervisors
-  %% https://github.com/agner/agner/blob/master/src/agner_app.erl
-  %% http://engineering.yakaz.com/2011/09/erlangotp-supervisors-corner-cases.html
-  shutdown(). % this is just temporary
+shutdown("graceful") -> % shutdown will happen in 30 seconds whether it wants to or not
+  Children = supervisor:which_children(werken_connection_sup),
+  Pids = lists:map(fun({_, Pid, _, _}) -> Pid end, Children),
+  tell_children_to_stop_listening(Pids),
+  check_connections(30).
+
+check_connections(0) ->
+  shutdown();
+
+check_connections(Tries) ->
+  [_, {active, C}, _, _] = supervisor:count_children(werken_connection_sup),
+  case C of
+    0 -> shutdown();
+    _ ->
+      NewTries = Tries - 1,
+      timer:apply_after(1000, ?MODULE, check_connections, [NewTries])
+  end.
 
 % private
 return_ok() ->
@@ -122,6 +129,13 @@ worker_count_for_function_name(FunctionName, WorkerCounts) ->
   end,
   lager:debug("FunctionName = ~p, WorkerCounts = ~p, X = ~p", [FunctionName, WorkerCounts, X]),
   X.
+
+tell_children_to_stop_listening([]) ->
+  ok;
+
+tell_children_to_stop_listening([P|Rest]) ->
+  gen_server:cast(P, close_socket),
+  tell_children_to_stop_listening(Rest).
 
 setup_initial_data(WorkerCounts) ->
   dict:map(fun(_Key, Val) -> {0, 0, Val} end, WorkerCounts).

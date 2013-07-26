@@ -9,7 +9,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
     code_change/3]).
 
--record(state, {socket}).
+-record(state, {socket, shutdown}).
 
 % API
 start_link(Socket) ->
@@ -40,13 +40,25 @@ handle_call({process_packet, Func}, _From, #state{socket = Socket} = State) ->
 handle_call(_Msg, _From, State) ->
   {noreply, State}.
 
-handle_cast(accept, State = #state{socket=LSock}) ->
+handle_cast(accept, State = #state{socket=LSock, shutdown=SD}) ->
   {ok, Socket} = gen_tcp:accept(LSock),
-  werken_connection_sup:start_socket(), %% maintain 20 listeners
+  case SD of
+    true -> gen_tcp:close(LSock);
+    _ -> werken_connection_sup:start_socket() %% maintain 20 listeners
+  end,
   inet:setopts(Socket, [{active, once}]),
   {noreply, State#state{socket=Socket}};
 
-handle_cast(stop, State) ->
+handle_cast(close_socket, State = #state{socket=Socket}) ->
+  case erlang:port_info(Socket) of
+    undefined ->
+      gen_server:cast(self(), stop);
+    _ -> ok
+  end,
+  {noreply, State#state{shutdown=true}};
+
+handle_cast(stop, State = #state{socket=Socket}) ->
+  gen_tcp:close(Socket),
   {stop, normal, State}.
 
 handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
@@ -58,8 +70,7 @@ handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
   {noreply, State};
 
 handle_info({tcp_closed, _Sock}, State) ->
-  werken_storage_client:delete_client(self()),
-  werken_storage_worker:delete_worker(self()),
+  remove_myself(),
   {stop, normal, State};
 
 handle_info(_M, State) ->
@@ -72,6 +83,11 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 % private
+remove_myself() ->
+  werken_storage_client:delete_client(self()),
+  werken_storage_worker:delete_worker(self()),
+  ok.
+
 process_results([], _Socket) ->
   lager:debug("all done processing. returning ok."),
   ok;
