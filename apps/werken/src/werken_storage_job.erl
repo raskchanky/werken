@@ -1,12 +1,19 @@
 -module(werken_storage_job).
 -compile([{parse_transform, lager_transform}]).
--export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1, get_job_status/1, mark_job_as_running/1, is_job_running/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1, get_job_status/1, mark_job_as_running/1, is_job_running/1, job_exists/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
 
 all_jobs() ->
   ets:tab2list(job_functions).
+
+job_exists(Job) ->
+  MatchSpec = ets:fun2ms(fun(J = #job{unique_id=UI}) when UI == Job#job.unique_id -> J end),
+  case ets:select(jobs, MatchSpec) of
+    [] -> false;
+    [Job] -> Job
+  end.
 
 add_job(Job=#job{}) ->
   case ets:insert_new(jobs, Job) of

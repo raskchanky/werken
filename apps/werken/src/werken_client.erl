@@ -7,7 +7,7 @@
 submit_job_high_bg/3, submit_job_low/3, submit_job_low_bg/3, submit_job_sched/8,
 submit_job_epoch/4, option_req/1]).
 
--export([generate_records_and_insert_job/7]).
+-export([generate_records_and_insert_job/6]).
 
 %% API
 submit_job(FunctionName, UniqueId, Data) ->
@@ -75,41 +75,50 @@ set_exceptions_for_client(Client) ->
   ok.
 
 submit_job(FunctionName, UniqueId, Data, Priority, Bg) ->
-  F = fun(JobId, ClientPid) -> apply(?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid]) end,
+  F = fun(ClientPid) -> apply(?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, ClientPid]) end,
   submit_job(F).
 
 submit_job(FunctionName, UniqueId, Data, Priority, Bg, Time) ->
-  F = fun(JobId, ClientPid) -> timer:apply_after(Time, ?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid]) end,
+  F = fun(ClientPid) -> timer:apply_after(Time, ?MODULE, generate_records_and_insert_job, [FunctionName, UniqueId, Data, Priority, Bg, ClientPid]) end,
   submit_job(F).
 
 submit_job(Func) when is_function(Func) ->
-  JobId = werken_utils:generate_job_id(),
   ClientPid = self(),
-  spawn(fun() -> Func(JobId, ClientPid) end),
+  JobId = Func(ClientPid),
   job_created_packet(JobId).
 
 job_created_packet(JobId) ->
   {binary, ["JOB_CREATED", JobId]}.
 
-generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, JobId, ClientPid) ->
-  Job = #job{job_id = JobId,
-             data = Data,
+generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, ClientPid) ->
+  UI = case UniqueId of
+    [] -> werken_utils:generate_unique_id(FunctionName, Data);
+    _ -> UniqueId
+  end,
+  Job = #job{data = Data,
              submitted_at = erlang:now(),
-             unique_id = UniqueId,
+             unique_id = UI,
              client_pid = ClientPid,
              bg = Bg},
-  JobFunction = #job_function{job_id = JobId,
-                              priority = Priority,
+  JobFunction = #job_function{priority = Priority,
                               available = true,
                               function_name = FunctionName},
   Client = #client{pid = ClientPid,
                    function_name = FunctionName,
                    data = Data},
   werken_storage_client:add_client(Client),
-  werken_storage_job:add_job(Job),
-  werken_storage_job:add_job(JobFunction),
-  spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end),
-  ok.
+  case werken_storage_job:job_exists(Job) of
+    false ->
+      JobId = werken_utils:generate_job_id(),
+      NewJob = Job#job{job_id = JobId},
+      NewJobFunction = JobFunction#job_function{job_id = JobId},
+      werken_storage_job:add_job(NewJob),
+      werken_storage_job:add_job(NewJobFunction),
+      spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end);
+    ExistingJob ->
+      JobId = ExistingJob#job.job_id
+  end,
+  JobId.
 
 assign_or_wakeup_workers_for_job(JobFunction) ->
   lager:debug("JobFunction = ~p", [JobFunction]),

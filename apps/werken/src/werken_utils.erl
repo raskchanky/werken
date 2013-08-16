@@ -1,6 +1,6 @@
 -module(werken_utils).
 -compile([{parse_transform, lager_transform}]).
--export([now_to_epoch/0, date_to_milliseconds/5, epoch_to_milliseconds/1, size_or_length/1, generate_job_id/0, generate_worker_id/0, generate_client_id/0, args_to_list/1, list_to_null_list/1, merge_records/3]).
+-export([now_to_epoch/0, date_to_milliseconds/5, epoch_to_milliseconds/1, size_or_length/1, generate_job_id/0, generate_worker_id/0, generate_client_id/0, args_to_list/1, list_to_null_list/1, merge_records/3, generate_unique_id/2]).
 
 % refactor all this shit
 now_to_epoch() ->
@@ -73,6 +73,11 @@ size_or_length(Term) when is_binary(Term) ->
 
 size_or_length(Term) when is_list(Term) ->
   length(Term).
+
+generate_unique_id(FunctionName, Data) ->
+  B = list_to_binary(FunctionName),
+  C = <<B/binary, Data/binary>>,
+  hmac:hexlify(erlsha2:sha256(C)).
 
 generate_worker_id() ->
   "W:" ++ integer_to_list(random_int()).
