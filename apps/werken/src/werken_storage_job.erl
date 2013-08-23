@@ -1,6 +1,6 @@
 -module(werken_storage_job).
 -compile([{parse_transform, lager_transform}]).
--export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1, get_job_status/1, mark_job_as_running/1, is_job_running/1, job_exists/1]).
+-export([add_job/1, get_job/1, delete_job/1, all_jobs/0, get_job_function_for_job/1, get_job_for_job_function/1, add_job_status/1, get_job_status/1, mark_job_as_running/1, is_job_running/1, job_exists/1, job_exists/2, add_job_client/1, get_client_pids_for_job/1]).
 
 -include("records.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -14,6 +14,18 @@ job_exists(Job) ->
     [] -> false;
     [Job] -> Job
   end.
+
+job_exists(JobId, ClientPid) ->
+  case ets:match_object(job_clients, {JobId, ClientPid}) of
+    [] -> false;
+    [JobClient] -> JobClient
+  end.
+
+add_job_client(JobClient) ->
+  ets:insert_new(job_clients, JobClient).
+
+get_client_pids_for_job(Job) ->
+  ets:lookup(job_clients, Job#job.job_id).
 
 add_job(Job=#job{}) ->
   case ets:insert_new(jobs, Job) of

@@ -98,7 +98,6 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
   Job = #job{data = Data,
              submitted_at = erlang:now(),
              unique_id = UI,
-             client_pid = ClientPid,
              bg = Bg},
   JobFunction = #job_function{priority = Priority,
                               available = true,
@@ -117,6 +116,12 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
       spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end);
     ExistingJob ->
       JobId = ExistingJob#job.job_id
+  end,
+  case werken_storage_job:job_exists(JobId, ClientPid) of
+    false ->
+      JobClient = #job_client{job_id = JobId, client_pid = ClientPid},
+      werken_storage_job:add_job_client(JobClient);
+    _ -> ok
   end,
   JobId.
 

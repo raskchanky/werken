@@ -128,20 +128,19 @@ job_assign_packet("JOB_ASSIGN", Job, JobFunction) ->
 job_assign_packet("JOB_ASSIGN_UNIQ", Job, JobFunction) ->
   {binary, ["JOB_ASSIGN_UNIQ", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.unique_id, Job#job.data]}.
 
-notify_clients_if_necessary(Job, Packet) ->
+notify_clients_if_necessary(Job = #job{bg = false}, Packet = ["WORK_EXCEPTION"|_Args]) ->
   lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
-  case Job#job.bg of
-    false ->
-      Pid = Job#job.client_pid,
-      Client = werken_storage_client:get_client(Pid),
-      case Client#client.exceptions of
-        true -> % this gets set with an OPTION_REQ request from the client
-          Func = fun() -> {binary, Packet} end,
-          gen_server:call(Pid, {process_packet, Func});
-        _ -> ok
-      end;
-    _ -> ok
-  end.
+  Pids = werken_storage_job:get_client_pids_for_job(Job),
+  process_client_notifications(Pids, Packet, true);
+
+notify_clients_if_necessary(Job = #job{bg = false}, Packet) ->
+  lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
+  Pids = werken_storage_job:get_client_pids_for_job(Job),
+  process_client_notifications(Pids, Packet, false);
+
+notify_clients_if_necessary(_Job, _Packet) ->
+  lager:debug("no need to do anything"),
+  ok.
 
 forward_packet_to_client(Name, Args) ->
   lager:debug("Name = ~p, Args = ~p", [Name, Args]),
@@ -149,3 +148,23 @@ forward_packet_to_client(Name, Args) ->
   Job = werken_storage_job:get_job(JobHandle),
   lager:debug("JobHandle = ~p, Job = ~p", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).
+
+process_client_notifications([], _, _) ->
+  ok;
+
+process_client_notifications([Pid|Rest], Packet, false) ->
+  send_packet(Pid, Packet),
+  process_client_notifications(Rest, Packet, false);
+
+process_client_notifications([Pid|Rest], Packet, true) ->
+  Client = werken_storage_client:get_client(Pid),
+  case Client#client.exceptions of
+    true -> % this gets set with an OPTION_REQ request from the client
+      send_packet(Pid, Packet);
+    _ -> ok
+  end,
+  process_client_notifications(Rest, Packet, true).
+
+send_packet(Pid, Packet) ->
+  Func = fun() -> {binary, Packet} end,
+  gen_server:call(Pid, {process_packet, Func}).
