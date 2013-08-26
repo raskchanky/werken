@@ -70,6 +70,7 @@ handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
   {noreply, State};
 
 handle_info({tcp_closed, _Sock}, State) ->
+  maybe_requeue_job(),
   remove_myself(),
   {stop, normal, State};
 
@@ -87,6 +88,19 @@ remove_myself() ->
   werken_storage_client:delete_client(self()),
   werken_storage_worker:delete_worker(self()),
   ok.
+
+maybe_requeue_job() ->
+  case am_i_a_worker() of
+    false -> ok;
+    WorkerId ->
+      werken_storage_job:mark_job_as_available_for_worker_id(WorkerId)
+  end.
+
+am_i_a_worker() ->
+  case werken_storage_worker:get_worker_id_for_pid(self()) of
+    [] -> false;
+    WorkerId -> WorkerId
+  end.
 
 process_results([], _Socket) ->
   lager:debug("all done processing. returning ok."),
