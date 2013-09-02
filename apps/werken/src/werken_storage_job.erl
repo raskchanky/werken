@@ -25,7 +25,8 @@ add_job_client(JobClient) ->
   ets:insert_new(job_clients, JobClient).
 
 get_client_pids_for_job(Job) ->
-  ets:lookup(job_clients, Job#job.job_id).
+  JobClients = ets:lookup(job_clients, Job#job.job_id),
+  lists:map(fun(JC) -> JC#job_client.client_pid end, JobClients).
 
 add_job(Job=#job{}) ->
   case ets:insert_new(jobs, Job) of
