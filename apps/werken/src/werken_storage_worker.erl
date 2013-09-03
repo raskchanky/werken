@@ -60,7 +60,8 @@ get_worker_pids_for_function_name(FunctionName) ->
   MatchSpec = ets:fun2ms(fun(W = #worker_function{function_name=F}) when F == FunctionName -> W end),
   case ets:select(worker_functions, MatchSpec) of
     [] ->
-      lager:debug("tried to find a worker for FunctionName ~p, failed. got [].", [FunctionName]);
+      lager:debug("tried to find a worker for FunctionName ~p, failed. got [].", [FunctionName]),
+      [];
     Workers ->
       lager:debug("FOUND SOME WORKERS! Worker(s) = ~p", [Workers]),
       Pids = lists:map(fun(W) -> W#worker_function.pid end, Workers),

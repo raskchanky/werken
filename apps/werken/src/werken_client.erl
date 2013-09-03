@@ -91,10 +91,12 @@ job_created_packet(JobId) ->
   {binary, ["JOB_CREATED", JobId]}.
 
 generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, ClientPid) ->
+  lager:debug("FunctionName = ~p, UniqueId = ~p, Data = ~p, Priority = ~p, Bg = ~p, ClientPid = ~p", [FunctionName, UniqueId, Data, Priority, Bg, ClientPid]),
   UI = case UniqueId of
     [] -> werken_utils:generate_unique_id(FunctionName, Data);
     _ -> UniqueId
   end,
+  lager:debug("UI = ~p", [UI]),
   Job = #job{data = Data,
              submitted_at = erlang:now(),
              unique_id = UI,

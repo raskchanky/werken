@@ -12,7 +12,7 @@ job_exists(Job) ->
   MatchSpec = ets:fun2ms(fun(J = #job{unique_id=UI}) when UI == Job#job.unique_id -> J end),
   case ets:select(jobs, MatchSpec) of
     [] -> false;
-    [Job] -> Job
+    [MatchingJob] -> MatchingJob
   end.
 
 job_exists(JobId, ClientPid) ->
