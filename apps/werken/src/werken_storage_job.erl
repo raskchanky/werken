@@ -16,13 +16,17 @@ job_exists(Job) ->
   end.
 
 job_exists(JobId, ClientPid) ->
-  case ets:match_object(job_clients, {JobId, ClientPid}) of
+  lager:debug("JobId = ~p, ClientPid = ~p", [JobId, ClientPid]),
+  ZZZ = case ets:match_object(job_clients, {JobId, ClientPid}) of
     [] -> false;
     [JobClient] -> JobClient
-  end.
+  end,
+  lager:debug("ZZZ = ~p", [ZZZ]),
+  ZZZ.
 
 add_job_client(JobClient) ->
-  ets:insert_new(job_clients, JobClient).
+  lager:debug("OH YES.  GONNA ADD A JOBCLIENT HOMIE = ~p", [JobClient]),
+  ets:insert(job_clients, JobClient).
 
 get_client_pids_for_job(Job) ->
   JobClients = ets:lookup(job_clients, Job#job.job_id),

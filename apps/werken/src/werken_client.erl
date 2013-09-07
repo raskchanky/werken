@@ -101,26 +101,32 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
              submitted_at = erlang:now(),
              unique_id = UI,
              bg = Bg},
-  JobFunction = #job_function{priority = Priority,
-                              available = true,
-                              function_name = FunctionName},
   Client = #client{pid = ClientPid,
                    function_name = FunctionName,
                    data = Data},
+  lager:debug("Job = ~p", [Job]),
+  lager:debug("Client = ~p", [Client]),
   werken_storage_client:add_client(Client),
   case werken_storage_job:job_exists(Job) of
     false ->
+      lager:debug("job does not exist yet. creating it"),
       JobId = werken_utils:generate_job_id(),
       NewJob = Job#job{job_id = JobId},
-      NewJobFunction = JobFunction#job_function{job_id = JobId},
+      JobFunction = #job_function{priority = Priority,
+                                  available = true,
+                                  job_id = JobId,
+                                  function_name = FunctionName},
+      lager:debug("JobFunction = ~p", [JobFunction]),
       werken_storage_job:add_job(NewJob),
-      werken_storage_job:add_job(NewJobFunction),
+      werken_storage_job:add_job(JobFunction),
       spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end);
     ExistingJob ->
-      JobId = ExistingJob#job.job_id
+      JobId = ExistingJob#job.job_id,
+      lager:debug("job already exists = ~p. its job id is ~p", [ExistingJob, JobId])
   end,
   case werken_storage_job:job_exists(JobId, ClientPid) of
     false ->
+      lager:debug("the jobid/clientpid combo of ~p / ~p does NOT already exist. gonna create it", [JobId, ClientPid]),
       JobClient = #job_client{job_id = JobId, client_pid = ClientPid},
       werken_storage_job:add_job_client(JobClient);
     _ -> ok
