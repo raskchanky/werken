@@ -144,11 +144,15 @@ mark_job_as_running(JobFunction) ->
 
 mark_job_as_available_for_worker_id(WorkerId) ->
   JobWorker = ets:lookup(job_workers, WorkerId),
-  Job = get_job(JobWorker#job_worker.job_id),
-  JobFunction = get_job_function_for_job(Job),
-  NewJobFunction = JobFunction#job_function{available = true},
-  ets:insert(job_functions, NewJobFunction),
-  ets:delete(job_workers, WorkerId),
+  case JobWorker of
+    [] -> ok;
+    _ ->
+      Job = get_job(JobWorker#job_worker.job_id),
+      JobFunction = get_job_function_for_job(Job),
+      NewJobFunction = JobFunction#job_function{available = true},
+      ets:insert(job_functions, NewJobFunction),
+      ets:delete(job_workers, WorkerId)
+  end,
   ok.
 
 is_job_running({job_handle, JobHandle}) ->
