@@ -86,12 +86,14 @@ update_worker_status(Pid, Status) when is_pid(Pid) ->
 
 get_worker_id_for_pid(Pid) when is_pid(Pid) ->
   lager:debug("gonna check the worker_id of me, pid = ~p", [Pid]),
-  X = case ets:lookup(workers, Pid) of
+  Worker = case ets:lookup(workers, Pid) of
     [] -> [];
-    [WorkerId] -> WorkerId
+    [W] -> W
   end,
-  lager:debug("and the result was ~p", [X]),
-  X.
+  lager:debug("Worker = ~p", [Worker]),
+  WorkerId = Worker#worker.worker_id,
+  lager:debug("and the result was ~p", [WorkerId]),
+  WorkerId.
 
 get_worker_function(Pid, #job_function{function_name = FunctionName}) when is_pid(Pid) ->
   MatchSpec = ets:fun2ms(fun(W = #worker_function{function_name=F, pid=P}) when F == FunctionName andalso P == Pid -> W end),

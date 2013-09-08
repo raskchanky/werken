@@ -39,6 +39,19 @@ add_job(Job=#job{}) ->
   end;
 
 add_job(JobFunction=#job_function{}) ->
+  lager:debug("gonna add/update a job_function. JobFunction = ~p", [JobFunction]),
+  JFT = ets:tab2list(job_functions),
+  lager:debug("current job_functions table = ~p", [JFT]),
+  MatchSpec = ets:fun2ms(fun(J = #job_function{job_id=JI, function_name=FN}) when JI == JobFunction#job_function.job_id andalso FN == JobFunction#job_function.function_name -> J end),
+  case ets:select(job_functions, MatchSpec) of
+    [] ->
+      lager:debug("nothing matched!  just insert it"),
+      ok;
+    [JF] ->
+      lager:debug("we matched the following. gonna delete it. JobFunction = ~p", [JF]),
+      ets:delete_object(job_functions, JF)
+  end,
+  lager:debug("now insert new one"),
   ets:insert(job_functions, JobFunction),
   ok.
 
@@ -135,22 +148,28 @@ delete_job(JobHandle) ->
   ok.
 
 mark_job_as_running(JobFunction) ->
+  lager:debug("gonna mark this job as running. JobFunction = ~p", [JobFunction]),
   NewJobFunction = JobFunction#job_function{available = false},
-  ets:insert(job_functions, NewJobFunction),
+  lager:debug("NewJobFunction = ~p", [NewJobFunction]),
+  add_job(NewJobFunction),
   WorkerId = werken_storage_worker:get_worker_id_for_pid(self()),
+  lager:debug("WorkerId = ~p", [WorkerId]),
   JobWorker = #job_worker{worker_id = WorkerId, job_id = JobFunction#job_function.job_id},
+  lager:debug("JobWorker = ~p", [JobWorker]),
   ets:insert(job_workers, JobWorker),
   NewJobFunction.
 
 mark_job_as_available_for_worker_id(WorkerId) ->
+  lager:debug("WorkerId = ~p", [WorkerId]),
   JobWorker = ets:lookup(job_workers, WorkerId),
+  lager:debug("JobWorker = ~p", [JobWorker]),
   case JobWorker of
     [] -> ok;
-    _ ->
-      Job = get_job(JobWorker#job_worker.job_id),
+    [JW] ->
+      Job = get_job(JW#job_worker.job_id),
       JobFunction = get_job_function_for_job(Job),
       NewJobFunction = JobFunction#job_function{available = true},
-      ets:insert(job_functions, NewJobFunction),
+      add_job(NewJobFunction),
       ets:delete(job_workers, WorkerId)
   end,
   ok.
