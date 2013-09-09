@@ -114,10 +114,11 @@ maybe_start_timer_for_job(JobFunction) ->
   case werken_storage_worker:get_worker_function(self(), JobFunction) of
     {error, no_worker_function} -> ok;
     WorkerFunction ->
-      case WorkerFunction#worker_function.timeout of
-        undefined -> ok;
-        _ ->
-          Seconds = WorkerFunction#worker_function.timeout * 1000,
+      case string:to_integer(WorkerFunction#worker_function.timeout) of
+        {error, _} -> ok;
+        {Timeout, _} ->
+          lager:debug("JobFunction = ~p, WorkerFunction = ~p, Timeout = ~p", [JobFunction, WorkerFunction, Timeout]),
+          Seconds = Timeout * 1000,
           timer:apply_after(Seconds, ?MODULE, check_job_progress, [JobFunction, WorkerFunction])
       end
   end.
