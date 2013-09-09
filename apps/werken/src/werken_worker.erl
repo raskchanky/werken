@@ -97,7 +97,7 @@ can_do_common(WorkerFunction) ->
   werken_storage_worker:add_worker(WorkerFunction),
   werken_storage_worker:add_worker(WorkerStatus),
   case werken_storage_worker:get_worker_id_for_pid(self()) of
-    [] -> set_client_id();
+    error -> set_client_id();
     _ -> ok
   end,
   ok.

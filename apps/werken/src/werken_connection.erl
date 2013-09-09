@@ -98,7 +98,7 @@ maybe_requeue_job() ->
 
 am_i_a_worker() ->
   case werken_storage_worker:get_worker_id_for_pid(self()) of
-    [] -> false;
+    error -> false;
     WorkerId -> WorkerId
   end.
 

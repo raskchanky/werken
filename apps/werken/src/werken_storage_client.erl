@@ -11,7 +11,7 @@ get_client(Pid) when is_pid(Pid) ->
 
 delete_client(Pid) when is_pid(Pid) ->
   ets:delete(clients, Pid),
-  ets:match_delete(job_clients, {'_', Pid});
+  ets:match_delete(job_clients, {job_client, '_', Pid});
 
 delete_client(ClientId) ->
-  ets:match_delete(clients, {'_', '_', '_', ClientId, '_', '_'}).
+  ets:match_delete(clients, {client, '_', '_', '_', ClientId, '_', '_'}).

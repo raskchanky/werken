@@ -153,10 +153,14 @@ mark_job_as_running(JobFunction) ->
   lager:debug("NewJobFunction = ~p", [NewJobFunction]),
   add_job(NewJobFunction),
   WorkerId = werken_storage_worker:get_worker_id_for_pid(self()),
-  lager:debug("WorkerId = ~p", [WorkerId]),
-  JobWorker = #job_worker{worker_id = WorkerId, job_id = JobFunction#job_function.job_id},
-  lager:debug("JobWorker = ~p", [JobWorker]),
-  ets:insert(job_workers, JobWorker),
+  case WorkerId of
+    error -> error;
+    _ ->
+      lager:debug("WorkerId = ~p", [WorkerId]),
+      JobWorker = #job_worker{worker_id = WorkerId, job_id = JobFunction#job_function.job_id},
+      lager:debug("JobWorker = ~p", [JobWorker]),
+      ets:insert(job_workers, JobWorker)
+  end,
   NewJobFunction.
 
 mark_job_as_available_for_worker_id(WorkerId) ->
