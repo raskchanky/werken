@@ -31,9 +31,7 @@ handle_call(get_socket, _From, State = #state{socket = Socket}) ->
   {reply, {ok, Socket}, State};
 
 handle_call({process_packet, Func}, _From, #state{socket = Socket} = State) ->
-  lager:debug("process_packet, Func ~p", [Func]),
   Result = Func(),
-  lager:debug("process_packet, Result ~p", [Result]),
   werken_response:send_response(Result, Socket),
   {reply, ok, State};
 
@@ -62,20 +60,14 @@ handle_cast(stop, State = #state{socket=Socket}) ->
   {stop, normal, State}.
 
 handle_info({tcp, Sock, RawData}, State = #state{data=ExistingBytes}) when is_binary(RawData) ->
-  lager:debug("just received raw data ~p", [RawData]),
-  lager:debug("had some existing bytes ~p", [ExistingBytes]),
   NewData = case ExistingBytes of
               undefined -> RawData;
               _ -> <<ExistingBytes/binary, RawData/binary>>
             end,
-  lager:debug("NewData = ~p", [NewData]),
   [Results, ExtraData] = werken_parser:parse(NewData),
-  lager:debug("ExtraData = ~p", [ExtraData]),
-  lager:debug("finished parsing all the shit. Results = ~p", [Results]),
   process_results(lists:reverse(Results), Sock),
   inet:setopts(Sock, [{active, once}]),
   NewState = State#state{data = ExtraData},
-  lager:debug("NewState = ~p", [NewState]),
   {noreply, NewState};
 
 handle_info({tcp_closed, _Sock}, State) ->
@@ -112,13 +104,9 @@ am_i_a_worker() ->
   end.
 
 process_results([], _Socket) ->
-  lager:debug("all done processing. returning ok."),
   ok;
 
 process_results([Result|Rest], Socket) ->
-  lager:debug("Result = ~p, Rest = ~p", [Result, Rest]),
   Data = Result(),
-  lager:debug("Data = ~p", [Data]),
   werken_response:send_response(Data, Socket),
-  lager:debug("just finished sending a response. recursing now"),
   process_results(Rest, Socket).

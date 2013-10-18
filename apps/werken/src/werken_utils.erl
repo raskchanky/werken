@@ -12,49 +12,31 @@ epoch_to_milliseconds(Epoch) when is_list(Epoch) ->
   epoch_to_milliseconds(E);
 
 epoch_to_milliseconds(Epoch) ->
-  lager:debug("Epoch = ~p", [Epoch]),
   UnixEpoch={{1970, 1, 1}, {0, 0, 0}},
-  lager:debug("UnixEpoch = ~p", [UnixEpoch]),
   UnixSeconds = calendar:datetime_to_gregorian_seconds(UnixEpoch),
-  lager:debug("UnixSeconds = ~p", [UnixSeconds]),
   Now = calendar:now_to_universal_time(erlang:now()),
-  lager:debug("Now = ~p", [Now]),
   NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
-  lager:debug("NowSeconds = ~p", [NowSeconds]),
   NowEpoch = NowSeconds - UnixSeconds,
-  lager:debug("NowEpoch = ~p", [NowEpoch]),
   case Epoch > NowEpoch of
-    true ->
-      (Epoch - NowEpoch) * 1000;
-    _ ->
-      0
+    true -> (Epoch - NowEpoch) * 1000;
+    _ -> 0
   end.
 
 date_to_milliseconds(Minute, Hour, DayOfMonth, Month, []) ->
   {{Y, _, _}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
-  lager:debug("Y = ~p", [Y]),
   DateTime = {{Y, Month, DayOfMonth}, {Hour, Minute, 0}},
-  lager:debug("DateTime = ~p", [DateTime]),
   Seconds = calendar:datetime_to_gregorian_seconds(DateTime),
-  lager:debug("Seconds = ~p", [Seconds]),
   Now = calendar:now_to_universal_time(erlang:now()),
-  lager:debug("Now = ~p", [Now]),
   NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
-  lager:debug("NowSeconds = ~p", [NowSeconds]),
   case Seconds > NowSeconds of
-    true ->
-      (Seconds - NowSeconds) * 1000;
-    _ ->
-      0
+    true -> (Seconds - NowSeconds) * 1000;
+    _ -> 0
   end;
 
 date_to_milliseconds(Minute, Hour, [], Month, DayOfWeek) ->
   {{Y, M, D}, {_, _, _}} = calendar:now_to_universal_time(erlang:now()),
-  lager:debug("Y = ~p, M = ~p, D = ~p", [Y, M, D]),
   CurrentDayOfWeek = calendar:day_of_the_week(Y, M, D), % this is 1 based, gearman is 0 based
-  lager:debug("CurrentDayOfWeek = ~p", [CurrentDayOfWeek]),
   NewCurrentDayOfWeek = CurrentDayOfWeek - 1,
-  lager:debug("NewCurrentDayOfWeek = ~p", [NewCurrentDayOfWeek]),
   Offset = case DayOfWeek >= NewCurrentDayOfWeek of
     true ->
       DayOfWeek - NewCurrentDayOfWeek;
@@ -62,7 +44,6 @@ date_to_milliseconds(Minute, Hour, [], Month, DayOfWeek) ->
       (7 - NewCurrentDayOfWeek) + DayOfWeek
   end,
   NewDay = Offset + D,
-  lager:debug("NewDay = ~p", [NewDay]),
   date_to_milliseconds(Minute, Hour, NewDay, Month, []);
 
 date_to_milliseconds(Minute, Hour, DayOfMonth, Month, _DayOfWeek) ->

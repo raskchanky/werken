@@ -91,12 +91,10 @@ job_created_packet(JobId) ->
   {binary, ["JOB_CREATED", JobId]}.
 
 generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, ClientPid) ->
-  lager:debug("FunctionName = ~p, UniqueId = ~p, Data = ~p, Priority = ~p, Bg = ~p, ClientPid = ~p", [FunctionName, UniqueId, Data, Priority, Bg, ClientPid]),
   UI = case UniqueId of
     [] -> werken_utils:generate_unique_id(FunctionName, Data);
     _ -> UniqueId
   end,
-  lager:debug("UI = ~p", [UI]),
   Job = #job{data = Data,
              submitted_at = erlang:now(),
              unique_id = UI,
@@ -104,29 +102,23 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
   Client = #client{pid = ClientPid,
                    function_name = FunctionName,
                    data = Data},
-  lager:debug("Job = ~p", [Job]),
-  lager:debug("Client = ~p", [Client]),
   werken_storage_client:add_client(Client),
   case werken_storage_job:job_exists(Job) of
     false ->
-      lager:debug("job does not exist yet. creating it"),
       JobId = werken_utils:generate_job_id(),
       NewJob = Job#job{job_id = JobId},
       JobFunction = #job_function{priority = Priority,
                                   available = true,
                                   job_id = JobId,
                                   function_name = FunctionName},
-      lager:debug("JobFunction = ~p", [JobFunction]),
       werken_storage_job:add_job(NewJob),
       werken_storage_job:add_job(JobFunction),
       spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end);
     ExistingJob ->
       JobId = ExistingJob#job.job_id,
-      lager:debug("job already exists = ~p. its job id is ~p", [ExistingJob, JobId])
   end,
   case werken_storage_job:job_exists(JobId, ClientPid) of
     false ->
-      lager:debug("the jobid/clientpid combo of ~p / ~p does NOT already exist. gonna create it", [JobId, ClientPid]),
       JobClient = #job_client{job_id = JobId, client_pid = ClientPid},
       werken_storage_job:add_job_client(JobClient);
     _ -> ok
@@ -134,9 +126,7 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
   JobId.
 
 assign_or_wakeup_workers_for_job(JobFunction) ->
-  lager:debug("JobFunction = ~p", [JobFunction]),
   Pids = werken_storage_worker:get_worker_pids_for_function_name(JobFunction#job_function.function_name),
-  lager:debug("Pids = ~p", [Pids]),
   case check_eligibility_for_direct_assignment(Pids) of
     Pid when is_pid(Pid) ->
       Packet = werken_worker:job_assign_packet_for_job_function("JOB_ASSIGN", JobFunction),
@@ -147,13 +137,10 @@ assign_or_wakeup_workers_for_job(JobFunction) ->
   end.
 
 check_eligibility_for_direct_assignment([]) ->
-  lager:debug("no more to check for eligibility. gonna just wake em up"),
   not_found;
 
 check_eligibility_for_direct_assignment([Pid|Rest]) ->
-  lager:debug("Pid = ~p, Rest = ~p", [Pid, Rest]),
   Record = werken_storage_worker:get_worker(Pid),
-  lager:debug("Record = ~p", [Record]),
   case Record#worker.direct_assignment of
     true ->
       Pid;
@@ -162,13 +149,10 @@ check_eligibility_for_direct_assignment([Pid|Rest]) ->
   end.
 
 wakeup_workers([]) ->
-  lager:debug("all out of workers. bye bye"),
   ok;
 
 wakeup_workers([Pid|Rest]) ->
-  lager:debug("Pid = ~p, Rest = ~p", [Pid, Rest]),
   Record = werken_storage_worker:get_worker_status(Pid),
-  lager:debug("Record = ~p", [Record]),
   case Record#worker_status.status of
     asleep ->
       gen_server:call(Pid, wakeup_worker),

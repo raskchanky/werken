@@ -23,9 +23,7 @@ parse(Command = <<"version">>, Acc) ->
   parse_admin_command(Command, Acc);
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
-  lager:debug("Command = ~p, Data = ~p", [Command, Data]),
   Result = decode(Command, Data),
-  lager:debug("Result = ~p", [Result]),
   NewList = [Result|Acc],
   case Rest of
     <<>> ->
@@ -35,19 +33,16 @@ parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
   end;
 
 parse(<<ExtraData/bytes>>, Acc) ->
-  lager:debug("there's extra data.  just gonna return it. ~p", [ExtraData]),
   [Acc, ExtraData].
 
 parse_admin_command(<<AdminCommand/bytes>>, _Acc) ->
   NewCommand = binary_to_list(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global])),
-  lager:debug("PARSING AN ADMIN COMMAND YO. NewCommand = ~p", [NewCommand]),
   [Command|Args] = case string:words(NewCommand) > 1 of
     false -> [NewCommand];
     true ->
       Tokens = string:tokens(NewCommand, " "),
       [hd(Tokens), lists:flatten(tl(Tokens))]
   end,
-  lager:debug("Command = ~p, Args = ~p", [Command, Args]),
   Func = fun() ->
     apply(werken_admin, list_to_atom(Command), Args)
   end,
@@ -56,9 +51,6 @@ parse_admin_command(<<AdminCommand/bytes>>, _Acc) ->
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),
   Command = num_to_command(Num),
-  lager:debug("Module = ~p, Command = ~p", [Module, Command]),
-  Z = werken_utils:args_to_list(Data),
-  lager:debug("Data = ~p", [Z]),
   Func = fun() ->
     apply(Module, Command, werken_utils:args_to_list(Data))
   end,

@@ -42,7 +42,6 @@ work_status(JobHandle, Numerator, Denominator) ->
   ok.
 
 work_complete(JobHandle, Data) ->
-  lager:debug("JobHandle = ~p, Data = ~p", [JobHandle, Data]),
   forward_packet_to_client("WORK_COMPLETE", [JobHandle, Data]),
   werken_storage_job:delete_job(JobHandle),
   ok.
@@ -54,12 +53,10 @@ work_fail(JobHandle) ->
 
 set_client_id() ->
   Id = werken_utils:generate_worker_id(),
-  lager:debug("Id ~p", [Id]),
   set_client_id(Id).
 
 set_client_id(ClientId) ->
   Worker = #worker{pid = self(), worker_id = ClientId},
-  lager:debug("Worker ~p", [Worker]),
   werken_storage_worker:add_worker(Worker),
   ok.
 
@@ -117,7 +114,6 @@ maybe_start_timer_for_job(JobFunction) ->
       case string:to_integer(WorkerFunction#worker_function.timeout) of
         {error, _} -> ok;
         {Timeout, _} ->
-          lager:debug("JobFunction = ~p, WorkerFunction = ~p, Timeout = ~p", [JobFunction, WorkerFunction, Timeout]),
           Seconds = Timeout * 1000,
           timer:apply_after(Seconds, ?MODULE, check_job_progress, [JobFunction, WorkerFunction])
       end
@@ -130,48 +126,37 @@ job_assign_packet("JOB_ASSIGN_UNIQ", Job, JobFunction) ->
   {binary, ["JOB_ASSIGN_UNIQ", JobFunction#job_function.job_id, JobFunction#job_function.function_name, Job#job.unique_id, Job#job.data]}.
 
 notify_clients_if_necessary(Job = #job{bg = false}, Packet = ["WORK_EXCEPTION"|_Args]) ->
-  lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
   Pids = werken_storage_job:get_client_pids_for_job(Job),
-  lager:debug("Pids = ~p", [Pids]),
   process_client_notifications(Pids, Packet, true);
 
 notify_clients_if_necessary(Job = #job{bg = false}, Packet) ->
-  lager:debug("Job = ~p, Packet = ~p", [Job, Packet]),
   Pids = werken_storage_job:get_client_pids_for_job(Job),
-  lager:debug("Pids = ~p", [Pids]),
   process_client_notifications(Pids, Packet, false);
 
 notify_clients_if_necessary(_Job, _Packet) ->
-  lager:debug("no need to do anything"),
   ok.
 
 forward_packet_to_client(Name, Args) ->
-  lager:debug("Name = ~p, Args = ~p", [Name, Args]),
   JobHandle = hd(Args),
   Job = werken_storage_job:get_job(JobHandle),
-  lager:debug("JobHandle = ~p, Job = ~p", [JobHandle, Job]),
   notify_clients_if_necessary(Job, [Name|Args]).
 
 process_client_notifications([], _, _) ->
   ok;
 
 process_client_notifications([Pid|Rest], Packet, false) ->
-  lager:debug("Pid = ~p, Rest = ~p, Packet = ~p", [Pid, Rest, Packet]),
   send_packet(Pid, Packet),
   process_client_notifications(Rest, Packet, false);
 
 process_client_notifications([Pid|Rest], Packet, true) ->
   Client = werken_storage_client:get_client(Pid),
-  lager:debug("Client = ~p", [Client]),
   case Client#client.exceptions of
     true -> % this gets set with an OPTION_REQ request from the client
-      lager:debug("this was an exception and we should handle it"),
       send_packet(Pid, Packet);
     _ -> ok
   end,
   process_client_notifications(Rest, Packet, true).
 
 send_packet(Pid, Packet) ->
-  lager:debug("Pid = ~p, Packet = ~p", [Pid, Packet]),
   Func = fun() -> {binary, Packet} end,
   gen_server:call(Pid, {process_packet, Func}).

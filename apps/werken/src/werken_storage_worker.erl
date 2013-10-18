@@ -9,17 +9,14 @@ all_worker_functions() ->
   ets:tab2list(worker_functions).
 
 add_worker(#worker{pid=Pid, worker_id=WorkerId} = NewWorker) when is_pid(Pid) andalso is_list(WorkerId) ->
-  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(workers, NewWorker),
   ok;
 
 add_worker(#worker_status{pid=Pid, status=Status} = NewWorker) when is_pid(Pid) andalso is_atom(Status) ->
-  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(worker_statuses, NewWorker),
   ok;
 
 add_worker(#worker_function{pid=Pid, function_name=FunctionName} = NewWorker) when is_pid(Pid) andalso is_list(FunctionName) ->
-  lager:debug("worker = ~p", [NewWorker]),
   ets:insert(worker_functions, NewWorker),
   ok.
 
@@ -46,53 +43,36 @@ delete_worker(Pid) when is_pid(Pid) ->
 get_worker_function_names_for_pid(Pid) when is_pid(Pid) ->
   case ets:lookup(worker_functions, Pid) of
     [] ->
-      lager:debug("tried to find some function names for pid ~p, failed. got [].", [Pid]),
       [];
     Workers ->
-      lager:debug("found some worker function name(s) = ~p", [Workers]),
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
-      SortedFunctionNames = lists:sort(FunctionNames),
-      lager:debug("just gonna return the function names ~p", [SortedFunctionNames]),
-      SortedFunctionNames
+      lists:sort(FunctionNames)
   end.
 
 get_worker_pids_for_function_name(FunctionName) ->
   MatchSpec = ets:fun2ms(fun(W = #worker_function{function_name=F}) when F == FunctionName -> W end),
   case ets:select(worker_functions, MatchSpec) of
     [] ->
-      lager:debug("tried to find a worker for FunctionName ~p, failed. got [].", [FunctionName]),
       [];
     Workers ->
-      lager:debug("FOUND SOME WORKERS! Worker(s) = ~p", [Workers]),
-      Pids = lists:map(fun(W) -> W#worker_function.pid end, Workers),
-      lager:debug("just gonna return the pids ~p", [Pids]),
-      Pids
+      lists:map(fun(W) -> W#worker_function.pid end, Workers)
   end.
 
 get_worker_status(Pid) when is_pid(Pid) ->
-  lager:debug("gonna check the status of me, pid = ~p", [Pid]),
-  X = case ets:lookup(worker_statuses, Pid) of
+  case ets:lookup(worker_statuses, Pid) of
     [] -> [];
     [Status] -> Status
-  end,
-  lager:debug("and the result was ~p", [X]),
-  X.
+  end.
 
 update_worker_status(Pid, Status) when is_pid(Pid) ->
-  lager:debug("gonna update a worker, pid = ~p, status = ~p", [Pid, Status]),
   WorkerStatus = #worker_status{pid = Pid, status = Status},
   ets:insert(worker_statuses, WorkerStatus),
   ok.
 
 get_worker_id_for_pid(Pid) when is_pid(Pid) ->
-  lager:debug("gonna check the worker_id of me, pid = ~p", [Pid]),
   case ets:lookup(workers, Pid) of
     [] -> error;
-    [W] ->
-      lager:debug("W = ~p", [W]),
-      WorkerId = W#worker.worker_id,
-      lager:debug("and the result was ~p", [WorkerId]),
-      WorkerId
+    [W] -> W#worker.worker_id
   end.
 
 get_worker_function(Pid, #job_function{function_name = FunctionName}) when is_pid(Pid) ->
@@ -107,12 +87,8 @@ remove_function_from_worker(all, Pid) when is_pid(Pid) ->
   ok;
 
 remove_function_from_worker(FunctionName, Pid) when is_pid(Pid) ->
-  lager:debug("going to try and delete a function from a worker. FunctionName = ~p, Pid = ~p", [FunctionName, Pid]),
   FullTable = ets:tab2list(worker_functions),
-  lager:debug("right now, table looks like this: ~p", [FullTable]),
   MS = ets:fun2ms(fun(#worker_function{pid=P, function_name=F}) when F == FunctionName andalso P == Pid -> true end),
   Num = ets:select_delete(worker_functions, MS),
-  lager:debug("num deleted = ~p", [Num]),
   FullTable1 = ets:tab2list(worker_functions),
-  lager:debug("just finished the delete. now the table looks like this: ~p", [FullTable1]),
   ok.

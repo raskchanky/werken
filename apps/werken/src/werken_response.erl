@@ -13,7 +13,6 @@ send_response({binary, Data}, Socket) ->
   BinArgs = werken_utils:list_to_null_list(Args),
   DataSize = size(BinArgs),
   Response = [0, "RES", <<CommandNum:32/big, DataSize:32/big, BinArgs/binary>>],
-  lager:debug("Response = ~p", [Response]),
   gen_tcp:send(Socket, Response);
 
 send_response(_Data, _Socket) ->

@@ -16,16 +16,12 @@ job_exists(Job) ->
   end.
 
 job_exists(JobId, ClientPid) ->
-  lager:debug("JobId = ~p, ClientPid = ~p", [JobId, ClientPid]),
-  ZZZ = case ets:match_object(job_clients, {JobId, ClientPid}) of
+  case ets:match_object(job_clients, {JobId, ClientPid}) of
     [] -> false;
     [JobClient] -> JobClient
-  end,
-  lager:debug("ZZZ = ~p", [ZZZ]),
-  ZZZ.
+  end.
 
 add_job_client(JobClient) ->
-  lager:debug("OH YES.  GONNA ADD A JOBCLIENT HOMIE = ~p", [JobClient]),
   ets:insert(job_clients, JobClient).
 
 get_client_pids_for_job(Job) ->
@@ -39,19 +35,14 @@ add_job(Job=#job{}) ->
   end;
 
 add_job(JobFunction=#job_function{}) ->
-  lager:debug("gonna add/update a job_function. JobFunction = ~p", [JobFunction]),
   JFT = ets:tab2list(job_functions),
-  lager:debug("current job_functions table = ~p", [JFT]),
   MatchSpec = ets:fun2ms(fun(J = #job_function{job_id=JI, function_name=FN}) when JI == JobFunction#job_function.job_id andalso FN == JobFunction#job_function.function_name -> J end),
   case ets:select(job_functions, MatchSpec) of
     [] ->
-      lager:debug("nothing matched!  just insert it"),
       ok;
     [JF] ->
-      lager:debug("we matched the following. gonna delete it. JobFunction = ~p", [JF]),
       ets:delete_object(job_functions, JF)
   end,
-  lager:debug("now insert new one"),
   ets:insert(job_functions, JobFunction),
   ok.
 
@@ -83,19 +74,12 @@ get_job(Pid) when is_pid(Pid) ->
   Workers1 = ets:tab2list(workers),
   Workers2 = ets:tab2list(worker_statuses),
   Workers3 = ets:tab2list(worker_functions),
-  lager:debug("Pid = ~p", [Pid]),
-  lager:debug("workers 1 = ~p", [Workers1]),
-  lager:debug("workers 2 = ~p", [Workers2]),
-  lager:debug("workers 3 = ~p", [Workers3]),
-  X = case ets:lookup(worker_functions, Pid) of
+  case ets:lookup(worker_functions, Pid) of
     [] -> [];
     Workers ->
       FunctionNames = lists:map(fun(W) -> W#worker_function.function_name end, Workers),
-      lager:debug("FunctionNames = ~p", [FunctionNames]),
       get_job(FunctionNames, [high, normal, low])
-  end,
-  lager:debug("X = ~p", [X]),
-  X;
+  end;
 
 get_job(JobHandle) when is_binary(JobHandle) ->
   NewJobHandle = binary_to_list(JobHandle),
@@ -108,33 +92,25 @@ get_job(JobHandle) ->
   end.
 
 get_job(_, []) ->
-  lager:debug("aw shit. no priorities left. what happens now?"),
   [];
 
 get_job(FunctionNames, [Priority|OtherPriorities]) ->
-  lager:debug("FunctionNames = ~p, Priority = ~p, OtherPriorities = ~p", [FunctionNames, Priority, OtherPriorities]),
   case get_job(FunctionNames, Priority) of
     [] ->
-      lager:debug("tried to get jobs with FunctionNames = ~p and Priority = ~p and it failed. Trying with OtherPriorities = ~p now", [FunctionNames, Priority, OtherPriorities]),
       get_job(FunctionNames, OtherPriorities);
     Job ->
-      lager:debug("succeeded in getting Job = ~p", [Job]),
       Job
   end;
 
 get_job([], Priority) when is_atom(Priority) ->
-  lager:debug("bummer. out of jobs for Priority = ~p", [Priority]),
   [];
 
 get_job([FunctionName|OtherFunctionNames], Priority) when is_atom(Priority) ->
-  lager:debug("FunctionName = ~p, OtherFunctionNames = ~p, Priority = ~p", [FunctionName, OtherFunctionNames, Priority]),
   MatchSpec = ets:fun2ms(fun(J = #job_function{function_name=F, priority=P, available=true}) when F == FunctionName andalso P == Priority -> J end),
   case ets:select(job_functions, MatchSpec) of
     [] ->
-      lager:debug("tried to find a job, failed. got []. trying with ~p now", [OtherFunctionNames]),
       get_job(OtherFunctionNames, Priority);
     JobFunctions ->
-      lager:debug("FOUND JOB(S)! JobFunctions = ~p", [JobFunctions]),
       JobFunction = hd(JobFunctions),
       mark_job_as_running(JobFunction)
   end.
@@ -148,25 +124,19 @@ delete_job(JobHandle) ->
   ok.
 
 mark_job_as_running(JobFunction) ->
-  lager:debug("gonna mark this job as running. JobFunction = ~p", [JobFunction]),
   NewJobFunction = JobFunction#job_function{available = false},
-  lager:debug("NewJobFunction = ~p", [NewJobFunction]),
   add_job(NewJobFunction),
   WorkerId = werken_storage_worker:get_worker_id_for_pid(self()),
   case WorkerId of
     error -> error;
     _ ->
-      lager:debug("WorkerId = ~p", [WorkerId]),
       JobWorker = #job_worker{worker_id = WorkerId, job_id = JobFunction#job_function.job_id},
-      lager:debug("JobWorker = ~p", [JobWorker]),
       ets:insert(job_workers, JobWorker)
   end,
   NewJobFunction.
 
 mark_job_as_available_for_worker_id(WorkerId) ->
-  lager:debug("WorkerId = ~p", [WorkerId]),
   JobWorker = ets:lookup(job_workers, WorkerId),
-  lager:debug("JobWorker = ~p", [JobWorker]),
   case JobWorker of
     [] -> ok;
     [JW] ->

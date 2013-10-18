@@ -24,7 +24,5 @@ init([]) ->
   Coordinator = {werken_coordinator, {werken_coordinator, start_link, []}, permanent, 5000, worker, [werken_coordinator]},
   ConnectionSupervisor = {werken_connection_sup, {werken_connection_sup, start_link, []}, permanent, 5000, supervisor, [werken_connection_sup]},
   Children = [Coordinator, ConnectionSupervisor],
-  %% FIXME: 0, 1 here is fine for dev but production settings should 
-  %% be different. one suggestion was 6, 3600.
-  RestartStrategy = {one_for_one, 0, 1},
+  RestartStrategy = {one_for_one, 6, 3600},
   {ok, {RestartStrategy, Children}}.
