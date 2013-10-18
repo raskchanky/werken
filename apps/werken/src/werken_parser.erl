@@ -7,20 +7,38 @@
 parse(Data) ->
   parse(Data, []).
 
+parse(Command = <<"workers">>, Acc) ->
+  parse_admin_command(Command, Acc);
+
+parse(Command = <<"status">>, Acc) ->
+  parse_admin_command(Command, Acc);
+
+parse(Command = <<"maxqueue", _Rest/bytes>>, Acc) ->
+  parse_admin_command(Command, Acc);
+
+parse(Command = <<"shutdown", _Rest/bytes>>, Acc) ->
+  parse_admin_command(Command, Acc);
+
+parse(Command = <<"version">>, Acc) ->
+  parse_admin_command(Command, Acc);
+
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
   lager:debug("Command = ~p, Data = ~p", [Command, Data]),
   Result = decode(Command, Data),
   lager:debug("Result = ~p", [Result]),
   NewList = [Result|Acc],
-  % notify_connection_of_packet(Result),
   case Rest of
     <<>> ->
-      NewList;
+      [NewList, undefined];
     Other ->
       parse(Other, NewList)
   end;
 
-parse(<<AdminCommand/bytes>>, _Acc) ->
+parse(<<ExtraData/bytes>>, Acc) ->
+  lager:debug("there's extra data.  just gonna return it. ~p", [ExtraData]),
+  [Acc, ExtraData].
+
+parse_admin_command(<<AdminCommand/bytes>>, _Acc) ->
   NewCommand = binary_to_list(binary:replace(AdminCommand, [<<10>>,<<13>>], <<>>, [global])),
   lager:debug("PARSING AN ADMIN COMMAND YO. NewCommand = ~p", [NewCommand]),
   [Command|Args] = case string:words(NewCommand) > 1 of
@@ -33,12 +51,7 @@ parse(<<AdminCommand/bytes>>, _Acc) ->
   Func = fun() ->
     apply(werken_admin, list_to_atom(Command), Args)
   end,
-  % notify_connection_of_packet(Func),
   [Func].
-
-% internal functions
-% notify_connection_of_packet(Packet) ->
-%   gen_server:cast(self(), {process_packet, Packet}).
 
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),

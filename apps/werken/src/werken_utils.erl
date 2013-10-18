@@ -91,7 +91,7 @@ generate_job_id() ->
 args_to_list(Args) ->
   Parts = binary:split(Args, [<<0>>], [global]),
   Result = lists:map(fun(X) -> binary_to_list(X) end, Parts),
-  case Result of 
+  case Result of
     [[]] ->
       [];
     Other ->

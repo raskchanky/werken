@@ -9,7 +9,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
     code_change/3]).
 
--record(state, {socket, shutdown}).
+-record(state, {socket, shutdown, data}).
 
 % API
 start_link(Socket) ->
@@ -61,13 +61,22 @@ handle_cast(stop, State = #state{socket=Socket}) ->
   gen_tcp:close(Socket),
   {stop, normal, State}.
 
-handle_info({tcp, Sock, RawData}, State) when is_binary(RawData) ->
+handle_info({tcp, Sock, RawData}, State = #state{data=ExistingBytes}) when is_binary(RawData) ->
   lager:debug("just received raw data ~p", [RawData]),
-  Results = werken_parser:parse(RawData),
+  lager:debug("had some existing bytes ~p", [ExistingBytes]),
+  NewData = case ExistingBytes of
+              undefined -> RawData;
+              _ -> <<ExistingBytes/binary, RawData/binary>>
+            end,
+  lager:debug("NewData = ~p", [NewData]),
+  [Results, ExtraData] = werken_parser:parse(NewData),
+  lager:debug("ExtraData = ~p", [ExtraData]),
   lager:debug("finished parsing all the shit. Results = ~p", [Results]),
   process_results(lists:reverse(Results), Sock),
   inet:setopts(Sock, [{active, once}]),
-  {noreply, State};
+  NewState = State#state{data = ExtraData},
+  lager:debug("NewState = ~p", [NewState]),
+  {noreply, NewState};
 
 handle_info({tcp_closed, _Sock}, State) ->
   maybe_requeue_job(),
