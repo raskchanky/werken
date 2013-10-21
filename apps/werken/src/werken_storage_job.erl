@@ -35,7 +35,6 @@ add_job(Job=#job{}) ->
   end;
 
 add_job(JobFunction=#job_function{}) ->
-  JFT = ets:tab2list(job_functions),
   MatchSpec = ets:fun2ms(fun(J = #job_function{job_id=JI, function_name=FN}) when JI == JobFunction#job_function.job_id andalso FN == JobFunction#job_function.function_name -> J end),
   case ets:select(job_functions, MatchSpec) of
     [] ->
@@ -71,9 +70,6 @@ get_job_for_job_function(JobFunction) ->
   end.
 
 get_job(Pid) when is_pid(Pid) ->
-  Workers1 = ets:tab2list(workers),
-  Workers2 = ets:tab2list(worker_statuses),
-  Workers3 = ets:tab2list(worker_functions),
   case ets:lookup(worker_functions, Pid) of
     [] -> [];
     Workers ->

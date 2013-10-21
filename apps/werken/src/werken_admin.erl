@@ -82,7 +82,7 @@ job_statistics([#job_function{function_name=FN}|Rest], WorkerCounts, Dict) ->
   NewDict = dict:store(FN, T, Dict),
   job_statistics(Rest, WorkerCounts, NewDict).
 
-statistics_tuple({Total, Running, AvailableWorkers}, FunctionName, WorkerCounts) ->
+statistics_tuple({Total, Running, _AvailableWorkers}, FunctionName, WorkerCounts) ->
   C = worker_count_for_function_name(FunctionName, WorkerCounts),
   NewRunning = case werken_storage_job:is_job_running({function_name, FunctionName}) of
     true -> Running + 1;

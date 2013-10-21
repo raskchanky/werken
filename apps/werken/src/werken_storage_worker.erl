@@ -87,8 +87,6 @@ remove_function_from_worker(all, Pid) when is_pid(Pid) ->
   ok;
 
 remove_function_from_worker(FunctionName, Pid) when is_pid(Pid) ->
-  FullTable = ets:tab2list(worker_functions),
   MS = ets:fun2ms(fun(#worker_function{pid=P, function_name=F}) when F == FunctionName andalso P == Pid -> true end),
-  Num = ets:select_delete(worker_functions, MS),
-  FullTable1 = ets:tab2list(worker_functions),
+  ets:select_delete(worker_functions, MS),
   ok.

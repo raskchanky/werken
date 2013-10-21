@@ -115,7 +115,7 @@ generate_records_and_insert_job(FunctionName, UniqueId, Data, Priority, Bg, Clie
       werken_storage_job:add_job(JobFunction),
       spawn(fun() -> assign_or_wakeup_workers_for_job(JobFunction) end);
     ExistingJob ->
-      JobId = ExistingJob#job.job_id,
+      JobId = ExistingJob#job.job_id
   end,
   case werken_storage_job:job_exists(JobId, ClientPid) of
     false ->
