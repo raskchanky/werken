@@ -7,19 +7,19 @@
 parse(Data) ->
   parse(Data, []).
 
-parse(Command = <<"workers">>, Acc) ->
+parse(Command = <<"workers\r\n">>, Acc) ->
   parse_admin_command(Command, Acc);
 
-parse(Command = <<"status">>, Acc) ->
+parse(Command = <<"status\r\n">>, Acc) ->
   parse_admin_command(Command, Acc);
 
-parse(Command = <<"maxqueue", _Rest/bytes>>, Acc) ->
+parse(Command = <<"maxqueue\r\n", _Rest/bytes>>, Acc) ->
   parse_admin_command(Command, Acc);
 
-parse(Command = <<"shutdown", _Rest/bytes>>, Acc) ->
+parse(Command = <<"shutdown\r\n", _Rest/bytes>>, Acc) ->
   parse_admin_command(Command, Acc);
 
-parse(Command = <<"version">>, Acc) ->
+parse(Command = <<"version\r\n">>, Acc) ->
   parse_admin_command(Command, Acc);
 
 parse(<<0, "REQ", Command:32, Size:32, Data:Size/bytes, Rest/bytes>>, Acc) ->
@@ -46,7 +46,7 @@ parse_admin_command(<<AdminCommand/bytes>>, _Acc) ->
   Func = fun() ->
     apply(werken_admin, list_to_atom(Command), Args)
   end,
-  [Func].
+  [[Func], []].
 
 decode(Num, Data) when is_binary(Data), is_integer(Num) ->
   Module = num_to_module(Num),

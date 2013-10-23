@@ -62,6 +62,7 @@ handle_cast(stop, State = #state{socket=Socket}) ->
 handle_info({tcp, Sock, RawData}, State = #state{data=ExistingBytes}) when is_binary(RawData) ->
   NewData = case ExistingBytes of
               undefined -> RawData;
+              [] -> RawData;
               _ -> <<ExistingBytes/binary, RawData/binary>>
             end,
   [Results, ExtraData] = werken_parser:parse(NewData),
