@@ -1,7 +1,7 @@
 Werken
 =====
 
-Werken is a distributed gearman server written in Erlang.  Werken means "work"
+Werken is a gearman server written in Erlang.  Werken means "work"
 in Dutch, which seemed appropriate.
 
 Getting started
