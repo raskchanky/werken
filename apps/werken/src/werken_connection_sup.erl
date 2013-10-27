@@ -20,8 +20,9 @@ init([]) ->
   end,
 
   {ok, LSock} = gen_tcp:listen(Port, [binary,
-                                      {active, false},
-                                      {reuseaddr, true}]),
+                                      {active, once},
+                                      {backlog, 50},
+                                      {packet, raw}]),
 
   spawn_link(fun initial_listeners/0),
   RestartStrategy = {simple_one_for_one, 60, 3600},
