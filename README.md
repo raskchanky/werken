@@ -12,3 +12,7 @@ A few notes
 ---------------
 * This is my first real Erlang project.  I'm sure the code is wildly inefficient, and completely non-idiomatic.  Constructive criticism is appreciated.
 * This code was written and tested against Erlang R16B. Earlier versions may or may not work.
+
+Known issues
+---------------
+* Intermittent crashes under high load
